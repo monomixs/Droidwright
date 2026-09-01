@@ -89,7 +89,7 @@ These are built-in features that make designing Android icons much smoother:
 
 Droidwright is completely self-contained with zero external dependencies.
 
-1. **Directly in Browser**: Open `index (1).html` (or `Droidwright.html`) in Chrome, Edge, Firefox, or Safari.
+1. **Directly in Browser**: Open `Droidwright.html` in Chrome, Edge, Firefox, or Safari.
 2. **Via Local Server** (optional):
    ```bash
    # Python
