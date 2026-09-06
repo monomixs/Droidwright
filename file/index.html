@@ -1,0 +1,569 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Droidwright — Android Vector Icon Editor</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Crect width='24' height='24' rx='5' fill='%23161923'/%3E%3Ccircle cx='12' cy='12' r='6' fill='%235EE1A0'/%3E%3C/svg%3E">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<div id="mobileBlockOverlay" class="mobile-block-overlay">
+  <div class="mobile-block-card">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" class="mobile-block-icon"><rect x="6" y="2" width="12" height="20" rx="2"/><path d="M11 18h2"/><path d="M8.5 7 L15.5 13 M15.5 7 L8.5 13" stroke="#FF6B6B"/></svg>
+    <h2>Desktop editor only</h2>
+    <p>Droidwright's vector editor needs a larger screen and a real cursor for precise node/handle editing — it doesn't support mobile devices yet.</p>
+    <p class="mobile-block-sub">Please reopen this project on a desktop or laptop browser.</p>
+    <button class="btn primary" id="mobileBlockHomeBtn">Back to home</button>
+  </div>
+</div>
+<main id="home-screen" class="home-screen">
+  <header class="home-header">
+    <div class="brand home-brand">
+      <span class="mark"><svg viewBox="0 0 24 24" fill="none"><rect x="1" y="1" width="22" height="22" rx="5" stroke="#5EE1A0" stroke-width="1.4"/><circle cx="12" cy="12" r="5.4" fill="#5EE1A0"/></svg></span>
+      Droidwright<small>vector icons</small>
+      <span class="version-badge" title="Current version">v1.0.0 Beta</span>
+    </div>
+    <div class="home-header-actions">
+      <span class="local-badge"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="4" width="20" height="13" rx="2"/><path d="M8 21h8M12 17v4"/></svg>Saved on this device</span>
+      <button class="btn icon-only" id="homeInfoBtn" title="About Droidwright & credits" aria-label="About Droidwright"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 16v-5"/><circle cx="12" cy="8" r="0.1" fill="currentColor" stroke-width="2.5"/></svg></button>
+      <button class="btn" id="homeImportProject" title="Import an SVG file">Import SVG</button>
+      <button class="btn primary" id="homeNewProject">New project</button>
+    </div>
+  </header>
+
+  <section class="home-content">
+    <section class="home-hero">
+      <p class="eyebrow">Local workspace · no account needed</p>
+      <h1>Your icons, precisely drawn.</h1>
+      <p class="hero-sub">Build Android vector drawables on a real dp grid, then export clean XML — every project saves straight to this device, nothing leaves it.</p>
+      <div class="spec-strip" id="homeStats">
+        <div class="spec-item"><span class="spec-value" id="statIcons">0</span><span class="spec-label">Icons</span></div>
+        <div class="spec-item"><span class="spec-value" id="statLayers">0</span><span class="spec-label">Layers</span></div>
+        <div class="spec-item"><span class="spec-value" id="statStorage">0 KB</span><span class="spec-label">Local storage</span></div>
+        <div class="spec-item"><span class="spec-value" id="statSaved">—</span><span class="spec-label">Last saved</span></div>
+      </div>
+      <div class="hero-blueprint-wrap" aria-hidden="true">
+        <svg class="keyline-diagram hero-blueprint" viewBox="0 0 200 200" focusable="false">
+          <line x1="100" y1="16" x2="100" y2="184" class="bp-cross"/>
+          <line x1="16" y1="100" x2="184" y2="100" class="bp-cross"/>
+          <rect x="30" y="44" width="140" height="112" class="bp-rect"/>
+          <rect x="44" y="30" width="112" height="140" class="bp-rect"/>
+          <rect x="37" y="37" width="126" height="126" class="bp-square"/>
+          <circle cx="100" cy="100" r="70" class="bp-circle"/>
+          <rect x="16" y="16" width="168" height="168" rx="16" class="bp-frame"/>
+          <circle cx="16" cy="16" r="2" class="bp-dot"/><circle cx="184" cy="16" r="2" class="bp-dot"/>
+          <circle cx="16" cy="184" r="2" class="bp-dot"/><circle cx="184" cy="184" r="2" class="bp-dot"/>
+          <circle cx="100" cy="100" r="2" class="bp-dot"/>
+        </svg>
+        <p class="hero-caption">24dp keyline guide</p>
+      </div>
+    </section>
+
+    <div class="home-toolbar" id="homeToolbar">
+      <label class="home-search">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+        <input type="text" id="homeSearchInput" placeholder="Find an icon…" autocomplete="off" spellcheck="false">
+        <span class="kbd">/</span>
+      </label>
+      <div class="home-toolbar-right">
+        <span id="homeProjectCount">0 icons</span>
+        <div class="home-sort" id="homeSort" role="group" aria-label="Sort projects">
+          <button type="button" class="sort-btn on" data-sort="recent">Recent</button>
+          <button type="button" class="sort-btn" data-sort="name">Name</button>
+        </div>
+      </div>
+    </div>
+
+    <div id="project-grid" class="project-grid"></div>
+
+    <div id="home-no-results" class="home-no-results" hidden>
+      <p>No icons match “<b id="homeNoResultsQuery"></b>”.</p>
+      <button class="btn ghost small" id="homeClearSearch" type="button">Clear search</button>
+    </div>
+
+    <div id="home-empty" class="home-empty" hidden>
+      <svg class="keyline-diagram empty-blueprint" viewBox="0 0 200 200" aria-hidden="true" focusable="false">
+        <rect x="30" y="44" width="140" height="112" class="bp-rect"/>
+        <rect x="44" y="30" width="112" height="140" class="bp-rect"/>
+        <rect x="37" y="37" width="126" height="126" class="bp-square"/>
+        <circle cx="100" cy="100" r="70" class="bp-circle"/>
+        <rect x="16" y="16" width="168" height="168" rx="16" class="bp-frame"/>
+      </svg>
+      <b>No icons yet</b>
+      <p>Start from a blank canvas or bring in an existing SVG. Everything saves locally the moment you hit Save.</p>
+      <div class="home-empty-actions">
+        <button class="btn primary" id="emptyNewProject" type="button">New project</button>
+        <button class="btn" id="emptyImportProject" type="button">Import SVG</button>
+      </div>
+    </div>
+  </section>
+</main>
+<div id="app">
+
+  <!-- ============================== TOP BAR ============================== -->
+  <div id="topbar">
+    <div class="brand">
+      <span class="mark"><svg viewBox="0 0 24 24" fill="none"><rect x="1" y="1" width="22" height="22" rx="5" stroke="#5EE1A0" stroke-width="1.4"/><circle cx="12" cy="12" r="5.4" fill="#5EE1A0"/></svg></span>
+      Droidwright<small>vector icons</small>
+    </div>
+    <input id="docNameInput" class="docname" value="ic_custom_icon" spellcheck="false" title="Drawable resource name">
+    <button class="btn" id="btnHome">Home</button>
+
+    <div class="topbar-group">
+      <button class="btn icon-only" id="btnUndo" data-tip title="Undo (Ctrl+Z)"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 7v6h6"/><path d="M21 17a9 9 0 0 0-15-6.7L3 13"/></svg></button>
+      <button class="btn icon-only" id="btnRedo" data-tip title="Redo (Ctrl+Shift+Z)"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 7v6h-6"/><path d="M3 17a9 9 0 0 1 15-6.7L21 13"/></svg></button>
+    </div>
+
+    <div class="vsep"></div>
+
+    <div class="topbar-group">
+      <button class="btn" id="btnNew">New</button>
+      <button class="btn" id="btnImportSvg">Import SVG</button>
+      <button class="btn" id="btnSaveProject">Save</button>
+      <button class="btn" id="btnLoadProject">Open</button>
+      <input type="file" id="fileImportSvg" accept=".svg,image/svg+xml" style="display:none">
+      <input type="file" id="fileLoadProject" accept=".json,application/json" style="display:none">
+    </div>
+
+    <div class="topbar-spacer"></div>
+
+    <div class="topbar-group">
+      <button class="btn" id="btnCopyXml"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="12" height="12" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>Copy XML</button>
+      <button class="btn primary" id="btnExportXml"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v12"/><path d="m7 10 5 5 5-5"/><path d="M5 21h14"/></svg>Export .xml</button>
+    </div>
+  </div>
+
+  <!-- ============================== BODY ============================== -->
+  <div id="body">
+
+    <!-- ---- Left tool rail ---- -->
+    <div id="rail">
+      <button class="tool-btn active" data-tool="select" data-tip title="Select (V)">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m4 4 7.07 17 2.51-7.39L21 11.07z"/></svg>
+      </button>
+      <button class="tool-btn" data-tool="rect" data-tip title="Rectangle (R)">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="5" width="18" height="14" rx="2"/></svg>
+      </button>
+      <button class="tool-btn" data-tool="ellipse" data-tip title="Ellipse (O)">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/></svg>
+      </button>
+      <button class="tool-btn" data-tool="polygon" data-tip title="Polygon / Star (P)">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2 2 9l4 12h12l4-12z"/></svg>
+      </button>
+      <button class="tool-btn" data-tool="line" data-tip title="Line — click start and end points (L)">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="5" y1="19" x2="19" y2="5"/><circle cx="5" cy="19" r="1.5" fill="currentColor"/><circle cx="19" cy="5" r="1.5" fill="currentColor"/></svg>
+      </button>
+      <button class="tool-btn" data-tool="pen" data-tip title="Freehand path (F)">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m12 19 7-7 3 3-7 7-3-3z"/><path d="m18 13-1.5-7.5L2 2l3.5 14.5L13 18l5-5z"/><path d="m2 2 7.586 7.586"/><circle cx="11" cy="11" r="2"/></svg>
+      </button>
+      <button class="tool-btn" id="btnPresetShapes" data-tip title="Shape Presets (S)">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>
+      </button>
+      <button class="tool-btn" id="btnMoreTools" data-tip title="More tools and actions" aria-expanded="false">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><circle cx="5" cy="12" r="1" fill="currentColor"/><circle cx="12" cy="12" r="1" fill="currentColor"/><circle cx="19" cy="12" r="1" fill="currentColor"/></svg>
+      </button>
+      <div class="rail-more-actions" id="railMoreActions" aria-label="More tools">
+        <div class="more-tools-head"><span>More tools</span><small>Advanced editing</small></div>
+        <button class="tool-btn" data-tool="node" data-tip title="Edit points (N)"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M12 3v6M12 15v6M3 12h6M15 12h6"/></svg><span>Edit points</span></button>
+        <button class="tool-btn" data-tool="arc" data-tip title="Arc — click two endpoints (A)"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12A9 9 0 0 0 12 3v9z"/><circle cx="12" cy="12" r="1.5" fill="currentColor"/></svg><span>Arc</span></button>
+        <button class="tool-btn" data-tool="curve" data-tip title="Bézier Curve (C)"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 19 C 8 5, 16 19, 20 5"/><circle cx="4" cy="19" r="1.5" fill="currentColor"/><circle cx="20" cy="5" r="1.5" fill="currentColor"/></svg><span>Bézier curve</span></button>
+        <button class="tool-btn" data-tool="cut" data-tip title="Cut tool — click points to trace a cutting shape, click the first point (or double-click) to slice it out (K)"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="6" cy="6" r="3"/><circle cx="6" cy="18" r="3"/><line x1="20" y1="4" x2="8.5" y2="15.5"/><line x1="14.5" y1="14.5" x2="20" y2="20"/><line x1="8.5" y1="8.5" x2="12" y2="12"/></svg><span>Cut</span></button>
+        <button class="tool-btn" id="btnBoolean" data-tip title="Boolean / Cut operations"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M8 12a4 4 0 1 0 8 0 4 4 0 1 0-8 0"/><path d="M12 8a4 4 0 1 0 8 0 4 4 0 1 0-8 0"/><path d="M6 6h4v4H6z"/><path d="M14 14h4v4h-4z"/></svg><span>Boolean</span></button>
+      </div>
+      <button class="tool-btn" data-tool="pan" data-tip title="Pan (Space / H)">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 11V6a2 2 0 0 0-2-2v0a2 2 0 0 0-2 2v0"/><path d="M14 10V4a2 2 0 0 0-2-2v0a2 2 0 0 0-2 2v2"/><path d="M10 10.5V6a2 2 0 0 0-2-2v0a2 2 0 0 0-2 2v8"/><path d="M18 8a2 2 0 1 1 4 0v6a8 8 0 0 1-8 8h-2c-2.8 0-4.5-.86-5.99-2.34l-3.6-4.53a1.5 1.5 0 0 1 2.31-1.9L6 15"/></svg>
+      </button>
+      <div class="rail-divider"></div>
+      <div class="rail-spacer"></div>
+      <div class="zoom-readout" id="zoomReadout">100%</div>
+      <button class="tool-btn" id="btnZoomIn" data-tip title="Zoom in (+)"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/><path d="M11 8v6M8 11h6"/></svg></button>
+      <button class="tool-btn" id="btnZoomOut" data-tip title="Zoom out (-)"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/><path d="M8 11h6"/></svg></button>
+      <button class="tool-btn" id="btnZoomFit" data-tip title="Zoom to fit (Shift+1)"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M8 3H5a2 2 0 0 0-2 2v3"/><path d="M21 8V5a2 2 0 0 0-2-2h-3"/><path d="M3 16v3a2 2 0 0 0 2 2h3"/><path d="M16 21h3a2 2 0 0 0 2-2v-3"/></svg></button>
+    </div>
+
+    <!-- ---- Reference image panel ---- -->
+    <div id="referencePanel" class="reference-panel">
+      <div class="reference-panel-head">
+        <span>Reference</span>
+        <button type="button" id="btnCloseReference" title="Close reference panel"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 6 6 18M6 6l12 12"/></svg></button>
+      </div>
+      <div class="reference-panel-body">
+        <div class="reference-empty" id="referenceEmptyState">
+          <p>Drop in a reference image to trace or color-match against.</p>
+          <input type="text" id="referenceUrlInput" placeholder="Paste an image URL…" spellcheck="false">
+          <button class="btn small" id="referenceUrlApply" type="button">Use URL</button>
+          <div class="reference-or">or</div>
+          <button class="btn small" id="referenceImportBtn" type="button">Import from device</button>
+          <input type="file" id="referenceFileInput" accept="image/*" style="display:none">
+        </div>
+        <div class="reference-viewport" id="referenceViewport" hidden>
+          <div class="reference-canvas-wrap">
+            <img id="referenceImg" draggable="false" alt="Reference">
+          </div>
+        </div>
+      </div>
+      <div class="reference-controls" id="referenceControls" hidden>
+        <button class="icon-btn" id="refZoomOut" type="button" data-tip title="Zoom out"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/><path d="M8 11h6"/></svg></button>
+        <button class="icon-btn" id="refZoomIn" type="button" data-tip title="Zoom in"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/><path d="M11 8v6M8 11h6"/></svg></button>
+        <span class="zoom-label" id="refZoomLabel">100%</span>
+        <button class="icon-btn" id="refPanLeft" type="button" data-tip title="Nudge left"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 12H5"/><path d="m11 18-6-6 6-6"/></svg></button>
+        <button class="icon-btn" id="refPanRight" type="button" data-tip title="Nudge right"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14"/><path d="m13 18 6-6-6-6"/></svg></button>
+        <button class="icon-btn" id="refResetView" type="button" data-tip title="Reset zoom/pan/rotation"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12a9 9 0 1 0 3-6.7"/><path d="M3 3v5h5"/></svg></button>
+        <div class="reference-rotate-row">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:14px;height:14px;flex:none;color:var(--text-2);"><path d="M21 12a9 9 0 1 1-3-6.7"/><path d="M21 3v5h-5"/></svg>
+          <input type="range" id="refRotate" min="-180" max="180" step="1" value="0">
+          <span class="zoom-label" id="refRotateLabel" style="width:34px;">0°</span>
+        </div>
+        <button class="icon-btn" id="refEyedropper" type="button" data-tip title="Eyedropper — pick a color from the reference image"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m2 22 1-4 9.5-9.5 3 3L6 21z"/><path d="m17.5 3.5 3 3L18 9l-3-3z"/></svg></button>
+        <button class="icon-btn" id="refSwapImage" type="button" data-tip title="Replace image"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="9" cy="9" r="2"/><path d="m21 15-5-5L5 21"/></svg></button>
+        <div class="reference-swatch" id="referenceSwatch" hidden>
+          <span class="swatch-dot" id="referenceSwatchDot"></span>
+          <span id="referenceSwatchHex">#000000</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- ---- Canvas ---- -->
+    <div id="canvas-area">
+      <div id="canvas-topbar">
+        <label class="chip toggle on" id="chipGrid"><input type="checkbox" id="chkGrid" checked>Grid</label>
+        <label class="chip toggle on" id="chipKeyline"><input type="checkbox" id="chkKeyline" checked>Keyline guide</label>
+        <label class="chip toggle on" id="chipGuides"><input type="checkbox" id="chkGuides" checked>Smart guides</label>
+        <label class="chip toggle" id="chipSnap"><input type="checkbox" id="chkSnap">Snap to grid</label>
+        <label class="chip toggle" id="chipReference"><input type="checkbox" id="chkReference">Reference</label>
+        <div class="topbar-spacer"></div>
+        <div class="view-controls" aria-label="Panel visibility">
+          <button class="canvas-control" id="btnToggleRail" type="button" data-tip="Hide left tools" aria-pressed="false"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="16" rx="2"/><path d="M8 4v16"/></svg></button>
+          <button class="canvas-control" id="btnToggleRightPanel" type="button" data-tip="Hide inspector" aria-pressed="false"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="16" rx="2"/><path d="M16 4v16"/></svg></button>
+          <button class="canvas-control" id="btnTogglePreview" type="button" data-tip="Hide icon previews" aria-pressed="false"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="16" rx="2"/><path d="M3 16h18"/></svg></button>
+          <button class="canvas-control focus-control" id="btnFocusCanvas" type="button" data-tip="Focus canvas — hide all panels" aria-pressed="false"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M8 3H5a2 2 0 0 0-2 2v3M16 3h3a2 2 0 0 1 2 2v3M3 16v3a2 2 0 0 0 2 2h3M21 16v3a2 2 0 0 1-2 2v-3"/></svg></button>
+        </div>
+        <span class="hint" id="viewportReadout">24 × 24 viewport</span>
+      </div>
+      <div id="canvas-scroll">
+        <svg id="stage-svg" xmlns="http://www.w3.org/2000/svg"></svg>
+      </div>
+      <div id="preview-strip"></div>
+    </div>
+
+    <!-- ---- Right panel ---- -->
+    <div id="rightpanel">
+      <div id="panel-resize-handle" role="separator" aria-label="Resize right panel" title="Drag to resize panel"></div>
+      <div id="tabs">
+        <button class="tab-btn active" data-tab="design">Design</button>
+        <button class="tab-btn" data-tab="layers">Layers<span class="tab-badge" id="layerTabBadge">0</span></button>
+        <button class="tab-btn" data-tab="code">XML</button>
+      </div>
+
+      <!-- DESIGN TAB -->
+      <div class="tabpanel active" id="tab-design">
+        <div class="panel-scroll">
+
+          <div class="section" id="sec-doc">
+            <div class="section-head" data-section="sec-doc">
+              <span class="title">Icon & Canvas settings</span>
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="m6 9 6 6 6-6"/></svg>
+            </div>
+            <div class="section-body">
+              <div class="row">
+                <div class="field"><label>Width (dp)</label><input type="number" id="docWidth" min="1" max="512" step="1" value="24"></div>
+                <div class="field"><label>Height (dp)</label><input type="number" id="docHeight" min="1" max="512" step="1" value="24"></div>
+              </div>
+              <div class="row">
+                <div class="field"><label>Viewport W</label><input type="number" id="docVpWidth" min="1" max="1000" step="1" value="24"></div>
+                <div class="field"><label>Viewport H</label><input type="number" id="docVpHeight" min="1" max="1000" step="1" value="24"></div>
+              </div>
+              <label class="checkbox-row"><input type="checkbox" class="sw" id="docLink" checked><span>Link size to viewport (1dp = 1unit)</span></label>
+              <div class="row">
+                <button class="btn small" data-size="24">24dp</button>
+                <button class="btn small" data-size="48">48dp</button>
+                <button class="btn small" data-size="96">96dp</button>
+                <button class="btn small" data-size="512">512dp</button>
+              </div>
+              <div class="row" style="margin-top:2px;">
+                <div class="field-inline"><label>Tint</label></div>
+                <div class="color-field" style="flex:none;">
+                  <span class="swatch" id="tintSwatchWrap"><i id="tintSwatch"></i><input type="color" id="docTint" value="#000000"></span>
+                </div>
+                <button class="btn small icon-only" id="btnClearTint" title="Clear tint">✕</button>
+              </div>
+              <div class="field"><label>Icon alpha <span id="docAlphaVal" style="color:var(--text-1);text-transform:none;">100%</span></label><input type="range" id="docAlpha" min="0" max="100" value="100"></div>
+              <label class="checkbox-row"><input type="checkbox" class="sw" id="docAutoMirror"><span>Auto-mirror for RTL layouts</span></label>
+
+              <!-- Dedicated Background Layer System -->
+              <div class="bg-layer-section">
+                <div class="bg-section-title">Canvas Background Layer</div>
+                <label class="checkbox-row"><input type="checkbox" class="sw" id="docBgEnabled"><span>Enable Solid Background</span></label>
+                <div id="docBgControls" style="display:none;flex-direction:column;gap:6px;">
+                  <div class="color-field">
+                    <span class="swatch" id="docBgSwatchWrap"><i id="docBgSwatch" style="background:#1E222B;"></i><input type="color" id="docBgColor" value="#1E222B"></span>
+                    <input type="text" class="hexinput" id="docBgHex" value="#1E222B" maxlength="9" spellcheck="false">
+                  </div>
+                  <div class="presets" id="docBgPresets">
+                    <span class="preset-dot" data-bg-color="#12141C" style="background:#12141C" title="Dark"></span>
+                    <span class="preset-dot" data-bg-color="#1E222B" style="background:#1E222B" title="Midnight"></span>
+                    <span class="preset-dot" data-bg-color="#2D3748" style="background:#2D3748" title="Slate"></span>
+                    <span class="preset-dot" data-bg-color="#FFFFFF" style="background:#FFFFFF" title="White"></span>
+                    <span class="preset-dot" data-bg-color="#F3F4F6" style="background:#F3F4F6" title="Light"></span>
+                    <span class="preset-dot" data-bg-color="#5EE1A0" style="background:#5EE1A0" title="Green"></span>
+                    <span class="preset-dot" data-bg-color="#6FA8FF" style="background:#6FA8FF" title="Blue"></span>
+                    <span class="preset-dot" data-bg-color="#FF6B6B" style="background:#FF6B6B" title="Red"></span>
+                  </div>
+                  <div class="field"><label>Background Opacity <span id="docBgAlphaVal" style="color:var(--text-1);text-transform:none;">100%</span></label><input type="range" id="docBgAlpha" min="0" max="100" value="100"></div>
+                  <label class="checkbox-row"><input type="checkbox" class="sw" id="docBgExport" checked><span>Include background in Vector XML export</span></label>
+                </div>
+              </div>
+
+            </div>
+          </div>
+
+          <div id="selectionPanels"></div>
+
+          <div class="section" id="sec-noselect">
+            <div class="section-body">
+              <div class="panel-empty">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="m3 3 7.07 16.97 2.51-7.39L20 10.07z"/></svg>
+                Nothing selected.<br>Draw a shape or pick one from Preset Shapes:
+                <div class="preset-chips-row" style="justify-content:center;margin-top:10px;">
+                  <button class="preset-chip-btn" data-insert-preset="triangle">▲ Triangle</button>
+                  <button class="preset-chip-btn" data-insert-preset="diamond">◆ Diamond</button>
+                  <button class="preset-chip-btn" data-insert-preset="pentagon">⬟ Pentagon</button>
+                  <button class="preset-chip-btn" data-insert-preset="hexagon">⬢ Hexagon</button>
+                  <button class="preset-chip-btn" data-insert-preset="star">★ Star</button>
+                  <button class="preset-chip-btn" data-insert-preset="heart">♥ Heart</button>
+                  <button class="preset-chip-btn" data-insert-preset="arrow">➔ Arrow</button>
+                  <button class="preset-chip-btn" data-insert-preset="lightning">⚡ Bolt</button>
+                  <button class="preset-chip-btn" data-insert-preset="moon">🌙 Moon</button>
+                  <button class="preset-chip-btn" data-insert-preset="speechBubble">💬 Bubble</button>
+                  <button class="preset-chip-btn" data-insert-preset="shield">⬟ Shield</button>
+                  <button class="preset-chip-btn" data-insert-preset="cross">✚ Cross</button>
+                  <button class="preset-chip-btn" data-insert-preset="check">✓ Check</button>
+                  <button class="preset-chip-btn" data-insert-preset="bookmark">🔖 Bookmark</button>
+                  <button class="preset-chip-btn" data-insert-preset="pie">🥧 Pie</button>
+                </div>
+              </div>
+            </div>
+          </div>
+
+        </div>
+      </div>
+
+      <!-- LAYERS TAB -->
+      <div class="tabpanel" id="tab-layers">
+        <div id="layertoolbar">
+          <span id="layercount">0 layers</span>
+          <div class="topbar-spacer"></div>
+          <button class="btn small icon-only" id="btnLayerGroup" data-tip="Group selected (Ctrl+G)"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/></svg></button>
+          <button class="btn small icon-only" id="btnLayerUngroup" data-tip="Ungroup selected (Ctrl+Shift+G)"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/><line x1="8" y1="12" x2="16" y2="12"/></svg></button>
+          <button class="btn small icon-only" id="btnLayerDup" data-tip="Duplicate selected (Ctrl+D)"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="12" height="12" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg></button>
+          <button class="btn small icon-only danger" id="btnLayerDel" data-tip="Delete selected (Del)"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6"/><path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg></button>
+        </div>
+        <ul id="layerlist"></ul>
+      </div>
+
+      <!-- CODE TAB -->
+      <div class="tabpanel" id="tab-code">
+        <div id="codepanel">
+          <div id="codetoolbar">
+            <button class="btn small" id="btnCopyXml2"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="12" height="12" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>Copy</button>
+            <span id="xmlStatus" class="xml-status" role="status"><span class="xml-status-icon">✓</span><span class="xml-status-text">Valid XML</span></span>
+            <button class="btn small primary" id="btnApplyXml">Apply XML</button>
+            <button class="btn small primary" id="btnExportXml2">Download .xml</button>
+          </div>
+          <div id="xml-editor">
+            <div id="xml-lines" aria-hidden="true"></div>
+            <div id="xml-code-wrap">
+              <pre id="xml-highlight" aria-hidden="true"></pre>
+              <textarea id="xmlout" spellcheck="false" aria-label="Editable Android vector XML"></textarea>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div id="toast"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg><span id="toastMsg"></span></div>
+
+<div id="canvasContextMenu" class="context-menu" hidden>
+  <div class="ctx-section-title">Edit & Clipboard</div>
+  <button class="ctx-item" data-ctx="cut">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="6" cy="6" r="3"/><circle cx="6" cy="18" r="3"/><line x1="20" y1="4" x2="8.12" y2="15.88"/><line x1="14.47" y1="14.48" x2="20" y2="20"/><line x1="8.12" y1="8.12" x2="12" y2="12"/></svg>
+    <span>Cut</span><span class="ctx-shortcut">Ctrl+X</span>
+  </button>
+  <button class="ctx-item" data-ctx="copy">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
+    <span>Copy</span><span class="ctx-shortcut">Ctrl+C</span>
+  </button>
+  <button class="ctx-item" data-ctx="paste">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"/><rect x="8" y="2" width="8" height="4" rx="1" ry="1"/></svg>
+    <span>Paste</span><span class="ctx-shortcut">Ctrl+V</span>
+  </button>
+  <button class="ctx-item" data-ctx="duplicate">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="8" y="8" width="12" height="12" rx="2"/><path d="M4 16V4a2 2 0 0 1 2-2h12"/></svg>
+    <span>Duplicate</span><span class="ctx-shortcut">Ctrl+D</span>
+  </button>
+  <button class="ctx-item danger" data-ctx="delete">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/><line x1="10" y1="11" x2="10" y2="17"/><line x1="14" y1="11" x2="14" y2="17"/></svg>
+    <span>Delete</span><span class="ctx-shortcut">Del</span>
+  </button>
+
+  <div class="ctx-divider"></div>
+  <div class="ctx-section-title">Lines & Paths</div>
+  <button class="ctx-item" data-ctx="connectLines">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></svg>
+    <span>Connect / Join lines</span>
+  </button>
+  <button class="ctx-item" data-ctx="disconnectLines">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 7l4 4-4 4"/><path d="M20 7l-4 4 4 4"/><line x1="9" y1="12" x2="15" y2="12"/></svg>
+    <span>Disconnect / Split into lines</span>
+  </button>
+
+  <div class="ctx-divider"></div>
+  <div class="ctx-section-title">Arrange & Group</div>
+  <button class="ctx-item" data-ctx="bringFront">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="12 2 2 7 12 12 22 7 12 2"/><polyline points="2 17 12 22 22 17"/><polyline points="2 12 12 17 22 12"/></svg>
+    <span>Bring to front</span>
+  </button>
+  <button class="ctx-item" data-ctx="sendBack">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="12 2 2 7 12 12 22 7 12 2"/><polyline points="2 17 12 22 22 17"/><polyline points="2 12 12 17 22 12"/></svg>
+    <span>Send to back</span>
+  </button>
+  <button class="ctx-item" data-ctx="flipH">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="8 3 4 7 8 11"/><polyline points="16 3 20 7 16 11"/><line x1="4" y1="7" x2="20" y2="7"/></svg>
+    <span>Flip horizontal</span>
+  </button>
+  <button class="ctx-item" data-ctx="flipV">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 8 7 4 11 8"/><polyline points="3 16 7 20 11 16"/><line x1="7" y1="4" x2="7" y2="20"/></svg>
+    <span>Flip vertical</span>
+  </button>
+  <button class="ctx-item" data-ctx="group">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg>
+    <span>Group</span><span class="ctx-shortcut">Ctrl+G</span>
+  </button>
+  <button class="ctx-item" data-ctx="ungroup">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 14h6v6H4z"/><path d="M14 4h6v6h-6z"/></svg>
+    <span>Ungroup</span><span class="ctx-shortcut">Ctrl+Shift+G</span>
+  </button>
+
+  <div class="ctx-divider"></div>
+  <div class="ctx-section-title">Align</div>
+  <button class="ctx-item" data-ctx="alignLeft"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="4" y1="4" x2="4" y2="20"/><rect x="8" y="6" width="12" height="4" rx="1"/><rect x="8" y="14" width="8" height="4" rx="1"/></svg><span>Align left</span></button>
+  <button class="ctx-item" data-ctx="alignHCenter"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="4" x2="12" y2="20"/><rect x="6" y="6" width="12" height="4" rx="1"/><rect x="8" y="14" width="8" height="4" rx="1"/></svg><span>Align center H</span></button>
+  <button class="ctx-item" data-ctx="alignRight"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="20" y1="4" x2="20" y2="20"/><rect x="4" y="6" width="12" height="4" rx="1"/><rect x="8" y="14" width="8" height="4" rx="1"/></svg><span>Align right</span></button>
+  <button class="ctx-item" data-ctx="alignTop"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="4" y1="4" x2="20" y2="4"/><rect x="6" y="8" width="4" height="12" rx="1"/><rect x="14" y="8" width="4" height="8" rx="1"/></svg><span>Align top</span></button>
+  <button class="ctx-item" data-ctx="alignVCenter"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="4" y1="12" x2="20" y2="12"/><rect x="6" y="6" width="4" height="12" rx="1"/><rect x="14" y="8" width="4" height="8" rx="1"/></svg><span>Align center V</span></button>
+  <button class="ctx-item" data-ctx="alignBottom"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="4" y1="20" x2="20" y2="20"/><rect x="6" y="4" width="4" height="12" rx="1"/><rect x="14" y="8" width="4" height="8" rx="1"/></svg><span>Align bottom</span></button>
+
+  <div class="ctx-divider"></div>
+  <div class="ctx-section-title">Boolean / Cut</div>
+  <button class="ctx-item" data-ctx="boolUnion"><span>➕ Union (Merge)</span></button>
+  <button class="ctx-item" data-ctx="boolSubtract"><span>➖ Subtract (Cut)</span></button>
+  <button class="ctx-item" data-ctx="boolIntersect"><span>✖️ Intersect</span></button>
+  <button class="ctx-item" data-ctx="boolExclude"><span>🔀 Exclude / XOR</span></button>
+</div>
+
+<div id="booleanMenuPopover" class="popover-menu" hidden>
+  <div class="popover-header">Boolean / Cut Operations</div>
+  <div id="boolSelectionHint" class="hint" style="padding:2px 6px 4px;font-size:10px;color:var(--text-2);">Select 2 or more shapes</div>
+  <button class="popover-btn" data-bool="union">
+    <span style="font-size:14px;">➕</span>
+    <div><b>Union</b><div style="font-size:10px;color:var(--text-2);font-weight:normal;">Merge shapes together</div></div>
+  </button>
+  <button class="popover-btn" data-bool="subtract">
+    <span style="font-size:14px;">➖</span>
+    <div><b>Subtract (Cut)</b><div style="font-size:10px;color:var(--text-2);font-weight:normal;">Cut top shape from bottom shape</div></div>
+  </button>
+  <button class="popover-btn" data-bool="intersect">
+    <span style="font-size:14px;">✖️</span>
+    <div><b>Intersect</b><div style="font-size:10px;color:var(--text-2);font-weight:normal;">Keep only overlapping area</div></div>
+  </button>
+  <button class="popover-btn" data-bool="exclude">
+    <span style="font-size:14px;">🔀</span>
+    <div><b>Exclude (XOR)</b><div style="font-size:10px;color:var(--text-2);font-weight:normal;">Remove overlapping sections</div></div>
+  </button>
+</div>
+
+<div id="presetsPopover" class="preset-popover" hidden>
+  <div class="popover-header">
+    <span>Preset Shapes</span>
+    <span class="hint">15 Vector Presets</span>
+  </div>
+  <div class="preset-grid">
+    <button class="preset-item-btn" data-insert-preset="triangle">
+      <svg viewBox="0 0 24 24" fill="currentColor"><polygon points="12 3 22 21 2 21"/></svg>
+      <span>Triangle</span>
+    </button>
+    <button class="preset-item-btn" data-insert-preset="diamond">
+      <svg viewBox="0 0 24 24" fill="currentColor"><polygon points="12 2 22 12 12 22 2 12"/></svg>
+      <span>Diamond</span>
+    </button>
+    <button class="preset-item-btn" data-insert-preset="pentagon">
+      <svg viewBox="0 0 24 24" fill="currentColor"><polygon points="12 2 22 9.5 18.5 21.5 5.5 21.5 2 9.5"/></svg>
+      <span>Pentagon</span>
+    </button>
+    <button class="preset-item-btn" data-insert-preset="hexagon">
+      <svg viewBox="0 0 24 24" fill="currentColor"><polygon points="12 2 21 7 21 17 12 22 3 17 3 7"/></svg>
+      <span>Hexagon</span>
+    </button>
+    <button class="preset-item-btn" data-insert-preset="star">
+      <svg viewBox="0 0 24 24" fill="currentColor"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>
+      <span>Star</span>
+    </button>
+    <button class="preset-item-btn" data-insert-preset="heart">
+      <svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"/></svg>
+      <span>Heart</span>
+    </button>
+    <button class="preset-item-btn" data-insert-preset="arrow">
+      <svg viewBox="0 0 24 24" fill="currentColor"><path d="M5 13h9v4l6-5-6-5v4H5z"/></svg>
+      <span>Arrow</span>
+    </button>
+    <button class="preset-item-btn" data-insert-preset="lightning">
+      <svg viewBox="0 0 24 24" fill="currentColor"><polygon points="13 2 4 14 11 14 9 22 20 10 13 10 13 2"/></svg>
+      <span>Lightning</span>
+    </button>
+    <button class="preset-item-btn" data-insert-preset="moon">
+      <svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 3a9 9 0 1 0 9 9c0-.46-.04-.92-.1-1.36a5.389 5.389 0 0 1-4.4 2.26 5.403 5.403 0 0 1-5.4-5.4c0-1.81.89-3.42 2.26-4.4-.44-.06-.9-.1-1.36-.1z"/></svg>
+      <span>Moon</span>
+    </button>
+    <button class="preset-item-btn" data-insert-preset="speechBubble">
+      <svg viewBox="0 0 24 24" fill="currentColor"><path d="M20 2H4c-1.1 0-2 .9-2 2v18l4-4h14c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2z"/></svg>
+      <span>Bubble</span>
+    </button>
+    <button class="preset-item-btn" data-insert-preset="shield">
+      <svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 2 21 6v5c0 5.5-3.8 9.4-9 11-5.2-1.6-9-5.5-9-11V6z"/></svg>
+      <span>Shield</span>
+    </button>
+    <button class="preset-item-btn" data-insert-preset="cross">
+      <svg viewBox="0 0 24 24" fill="currentColor"><path d="M8 2h8v6h6v8h-6v6H8v-6H2V8h6z"/></svg>
+      <span>Cross</span>
+    </button>
+    <button class="preset-item-btn" data-insert-preset="check">
+      <svg viewBox="0 0 24 24" fill="currentColor"><path d="m3 13 5 5L21 5l-3-3L8 12 6 10z"/></svg>
+      <span>Check</span>
+    </button>
+    <button class="preset-item-btn" data-insert-preset="bookmark">
+      <svg viewBox="0 0 24 24" fill="currentColor"><path d="M6 2h12v20l-6-4-6 4z"/></svg>
+      <span>Bookmark</span>
+    </button>
+    <button class="preset-item-btn" data-insert-preset="pie">
+      <svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 12 L12 2 A10 10 0 1 1 3.4 17.3 Z"/></svg>
+      <span>Pie chart</span>
+    </button>
+  </div>
+</div>
+
+<div class="modal-backdrop" id="modalBackdrop">
+  <div class="modal">
+    <div class="modal-head" id="modalTitle">Title</div>
+    <div class="modal-body" id="modalBody">Body</div>
+    <div class="modal-foot" id="modalFoot"></div>
+  </div>
+</div>
+<script src="script.js"></script>
+</body>
+</html>
