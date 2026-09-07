@@ -25,7 +25,7 @@
     <div class="brand home-brand">
       <span class="mark"><svg viewBox="0 0 24 24" fill="none"><rect x="1" y="1" width="22" height="22" rx="5" stroke="#5EE1A0" stroke-width="1.4"/><circle cx="12" cy="12" r="5.4" fill="#5EE1A0"/></svg></span>
       Droidwright<small>vector icons</small>
-      <span class="version-badge" title="Current version">v1.0.0 Beta</span>
+      <span class="version-badge" title="Current version">v1.2.0 Beta</span>
     </div>
     <div class="home-header-actions">
       <span class="local-badge"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="4" width="20" height="13" rx="2"/><path d="M8 21h8M12 17v4"/></svg>Saved on this device</span>
@@ -133,7 +133,7 @@
 
     <div class="topbar-group">
       <button class="btn" id="btnCopyXml"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="12" height="12" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>Copy XML</button>
-      <button class="btn primary" id="btnExportXml"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v12"/><path d="m7 10 5 5 5-5"/><path d="M5 21h14"/></svg>Export .xml</button>
+      <button class="btn primary" id="btnExportMenu"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v12"/><path d="m7 10 5 5 5-5"/><path d="M5 21h14"/></svg>Export<svg class="chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="width:10px;height:10px;margin-left:1px;"><path d="m6 9 6 6 6-6"/></svg></button>
     </div>
   </div>
 
@@ -154,7 +154,7 @@
       <button class="tool-btn" data-tool="polygon" data-tip title="Polygon / Star (P)">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2 2 9l4 12h12l4-12z"/></svg>
       </button>
-      <button class="tool-btn" data-tool="line" data-tip title="Line — click start and end points (L)">
+      <button class="tool-btn" data-tool="line" data-tip title="Line (L)">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="5" y1="19" x2="19" y2="5"/><circle cx="5" cy="19" r="1.5" fill="currentColor"/><circle cx="19" cy="5" r="1.5" fill="currentColor"/></svg>
       </button>
       <button class="tool-btn" data-tool="pen" data-tip title="Freehand path (F)">
@@ -168,6 +168,7 @@
       </button>
       <div class="rail-more-actions" id="railMoreActions" aria-label="More tools">
         <div class="more-tools-head"><span>More tools</span><small>Advanced editing</small></div>
+        <button class="tool-btn" data-tool="text" data-tip title="Text (T)"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 6h16"/><path d="M12 6v14"/><path d="M9 20h6"/></svg><span>Text</span></button>
         <button class="tool-btn" data-tool="node" data-tip title="Edit points (N)"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M12 3v6M12 15v6M3 12h6M15 12h6"/></svg><span>Edit points</span></button>
         <button class="tool-btn" data-tool="arc" data-tip title="Arc — click two endpoints (A)"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12A9 9 0 0 0 12 3v9z"/><circle cx="12" cy="12" r="1.5" fill="currentColor"/></svg><span>Arc</span></button>
         <button class="tool-btn" data-tool="curve" data-tip title="Bézier Curve (C)"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 19 C 8 5, 16 19, 20 5"/><circle cx="4" cy="19" r="1.5" fill="currentColor"/><circle cx="20" cy="5" r="1.5" fill="currentColor"/></svg><span>Bézier curve</span></button>
@@ -293,31 +294,6 @@
               </div>
               <div class="field"><label>Icon alpha <span id="docAlphaVal" style="color:var(--text-1);text-transform:none;">100%</span></label><input type="range" id="docAlpha" min="0" max="100" value="100"></div>
               <label class="checkbox-row"><input type="checkbox" class="sw" id="docAutoMirror"><span>Auto-mirror for RTL layouts</span></label>
-
-              <!-- Dedicated Background Layer System -->
-              <div class="bg-layer-section">
-                <div class="bg-section-title">Canvas Background Layer</div>
-                <label class="checkbox-row"><input type="checkbox" class="sw" id="docBgEnabled"><span>Enable Solid Background</span></label>
-                <div id="docBgControls" style="display:none;flex-direction:column;gap:6px;">
-                  <div class="color-field">
-                    <span class="swatch" id="docBgSwatchWrap"><i id="docBgSwatch" style="background:#1E222B;"></i><input type="color" id="docBgColor" value="#1E222B"></span>
-                    <input type="text" class="hexinput" id="docBgHex" value="#1E222B" maxlength="9" spellcheck="false">
-                  </div>
-                  <div class="presets" id="docBgPresets">
-                    <span class="preset-dot" data-bg-color="#12141C" style="background:#12141C" title="Dark"></span>
-                    <span class="preset-dot" data-bg-color="#1E222B" style="background:#1E222B" title="Midnight"></span>
-                    <span class="preset-dot" data-bg-color="#2D3748" style="background:#2D3748" title="Slate"></span>
-                    <span class="preset-dot" data-bg-color="#FFFFFF" style="background:#FFFFFF" title="White"></span>
-                    <span class="preset-dot" data-bg-color="#F3F4F6" style="background:#F3F4F6" title="Light"></span>
-                    <span class="preset-dot" data-bg-color="#5EE1A0" style="background:#5EE1A0" title="Green"></span>
-                    <span class="preset-dot" data-bg-color="#6FA8FF" style="background:#6FA8FF" title="Blue"></span>
-                    <span class="preset-dot" data-bg-color="#FF6B6B" style="background:#FF6B6B" title="Red"></span>
-                  </div>
-                  <div class="field"><label>Background Opacity <span id="docBgAlphaVal" style="color:var(--text-1);text-transform:none;">100%</span></label><input type="range" id="docBgAlpha" min="0" max="100" value="100"></div>
-                  <label class="checkbox-row"><input type="checkbox" class="sw" id="docBgExport" checked><span>Include background in Vector XML export</span></label>
-                </div>
-              </div>
-
             </div>
           </div>
 
@@ -349,6 +325,36 @@
             </div>
           </div>
 
+          <div class="section" id="sec-bg">
+            <div class="section-head" data-section="sec-bg">
+              <span class="title">Canvas Background Layer</span>
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="m6 9 6 6 6-6"/></svg>
+            </div>
+            <div class="section-body">
+              <div class="bg-layer-section">
+                <label class="checkbox-row"><input type="checkbox" class="sw" id="docBgEnabled"><span>Enable Solid Background</span></label>
+                <div id="docBgControls" style="display:none;flex-direction:column;gap:6px;">
+                  <div class="color-field">
+                    <span class="swatch" id="docBgSwatchWrap"><i id="docBgSwatch" style="background:#1E222B;"></i><input type="color" id="docBgColor" value="#1E222B"></span>
+                    <input type="text" class="hexinput" id="docBgHex" value="#1E222B" maxlength="9" spellcheck="false">
+                  </div>
+                  <div class="presets" id="docBgPresets">
+                    <span class="preset-dot" data-bg-color="#12141C" style="background:#12141C" title="Dark"></span>
+                    <span class="preset-dot" data-bg-color="#1E222B" style="background:#1E222B" title="Midnight"></span>
+                    <span class="preset-dot" data-bg-color="#2D3748" style="background:#2D3748" title="Slate"></span>
+                    <span class="preset-dot" data-bg-color="#FFFFFF" style="background:#FFFFFF" title="White"></span>
+                    <span class="preset-dot" data-bg-color="#F3F4F6" style="background:#F3F4F6" title="Light"></span>
+                    <span class="preset-dot" data-bg-color="#5EE1A0" style="background:#5EE1A0" title="Green"></span>
+                    <span class="preset-dot" data-bg-color="#6FA8FF" style="background:#6FA8FF" title="Blue"></span>
+                    <span class="preset-dot" data-bg-color="#FF6B6B" style="background:#FF6B6B" title="Red"></span>
+                  </div>
+                  <div class="field"><label>Background Opacity <span id="docBgAlphaVal" style="color:var(--text-1);text-transform:none;">100%</span></label><input type="range" id="docBgAlpha" min="0" max="100" value="100"></div>
+                  <label class="checkbox-row"><input type="checkbox" class="sw" id="docBgExport" checked><span>Include background in Vector XML export</span></label>
+                </div>
+              </div>
+            </div>
+          </div>
+
         </div>
       </div>
 
@@ -371,6 +377,7 @@
           <div id="codetoolbar">
             <button class="btn small" id="btnCopyXml2"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="12" height="12" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>Copy</button>
             <span id="xmlStatus" class="xml-status" role="status"><span class="xml-status-icon">✓</span><span class="xml-status-text">Valid XML</span></span>
+            <span id="xmlTextBadge" class="xml-status info" role="status" hidden data-tooltip="This icon has editable text, but Android Vector Drawable XML has no live text — it's baked into fixed paths here. Copying just this XML/SVG/PNG elsewhere means it can no longer be edited as text. Save the Droidwright project file (not just this code) to keep it editable."><span class="xml-status-icon">T</span><span class="xml-status-text">Text becomes uneditable outside the project file</span></span>
             <button class="btn small primary" id="btnApplyXml">Apply XML</button>
             <button class="btn small primary" id="btnExportXml2">Download .xml</button>
           </div>
@@ -460,8 +467,15 @@
   <button class="ctx-item" data-ctx="alignBottom"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="4" y1="20" x2="20" y2="20"/><rect x="6" y="4" width="4" height="12" rx="1"/><rect x="14" y="8" width="4" height="8" rx="1"/></svg><span>Align bottom</span></button>
 
   <div class="ctx-divider"></div>
+  <div class="ctx-section-title">Combine</div>
+  <button class="ctx-item" data-ctx="mergeShapes">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="10" height="10" rx="1"/><rect x="11" y="11" width="10" height="10" rx="1"/></svg>
+    <span>Merge into one path</span>
+  </button>
+
+  <div class="ctx-divider"></div>
   <div class="ctx-section-title">Boolean / Cut</div>
-  <button class="ctx-item" data-ctx="boolUnion"><span>➕ Union (Merge)</span></button>
+  <button class="ctx-item" data-ctx="boolUnion"><span>➕ Union</span></button>
   <button class="ctx-item" data-ctx="boolSubtract"><span>➖ Subtract (Cut)</span></button>
   <button class="ctx-item" data-ctx="boolIntersect"><span>✖️ Intersect</span></button>
   <button class="ctx-item" data-ctx="boolExclude"><span>🔀 Exclude / XOR</span></button>
@@ -555,6 +569,54 @@
       <span>Pie chart</span>
     </button>
   </div>
+</div>
+
+<div id="exportPopover" class="export-popover" hidden>
+  <div class="popover-header">
+    <span>Export Icon</span>
+    <span class="hint" id="exportPopoverDims">24 × 24 dp</span>
+  </div>
+  <div class="export-preview" id="exportPreviewFrame"></div>
+  <div class="field">
+    <label for="exportFormatSelect">Format</label>
+    <select class="select" id="exportFormatSelect">
+      <option value="xml" selected>Android Vector XML (.xml)</option>
+      <option value="svg">SVG (.svg)</option>
+      <option value="png">PNG (.png)</option>
+    </select>
+  </div>
+  <div class="field" id="exportPngSizeField" hidden>
+    <label for="exportPngSize">PNG size</label>
+    <select class="select" id="exportPngSize">
+      <option value="24">24 × 24 px</option>
+      <option value="48">48 × 48 px</option>
+      <option value="96">96 × 96 px</option>
+      <option value="192">192 × 192 px</option>
+      <option value="512" selected>512 × 512 px</option>
+      <option value="1024">1024 × 1024 px</option>
+    </select>
+  </div>
+  <button class="btn primary" id="btnExportDownload" style="width:100%;justify-content:center;">Download .xml</button>
+</div>
+
+<div id="fontBrowserPopover" class="font-browser-popover" hidden>
+  <div class="popover-header">
+    <span>Browse Google Fonts</span>
+    <button class="popover-close" id="btnCloseFontBrowser" aria-label="Close">✕</button>
+  </div>
+  <input type="text" id="fontBrowserSearch" class="fb-search" placeholder="Search fonts…" spellcheck="false" autocomplete="off">
+  <div class="fb-categories" id="fontBrowserCategories">
+    <button class="fb-cat active" data-category="all">All</button>
+    <button class="fb-cat" data-category="sans-serif">Sans Serif</button>
+    <button class="fb-cat" data-category="serif">Serif</button>
+    <button class="fb-cat" data-category="display">Display</button>
+    <button class="fb-cat" data-category="handwriting">Handwriting</button>
+    <button class="fb-cat" data-category="monospace">Monospace</button>
+  </div>
+  <div class="fb-list" id="fontBrowserList">
+    <div class="fb-status" id="fontBrowserStatus">Loading fonts…</div>
+  </div>
+  <div class="hint" style="padding:6px 2px 0;">Requires an internet connection — fonts are fetched live from Google Fonts.</div>
 </div>
 
 <div class="modal-backdrop" id="modalBackdrop">
