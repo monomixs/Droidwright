@@ -3,7 +3,7 @@
 A fast, lightweight, local-first vector editor built specifically for creating Android `VectorDrawable` XML icons on a real dp canvas.
 
 ---
-### Try Droidwright right now: [Droidwright](https://monomixs.github.io/Droidwright/index.html)
+### Try Droidwright right now: [Droidwright](https://droidwright.wasmer.app/)
 ---
 
 ## Why Droidwright?
