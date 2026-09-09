@@ -13,7 +13,7 @@ const MIN_ZOOM = 0.01, MAX_ZOOM = 48;
 // Console) to only accept requests referred from this app's own domain. Google's own docs
 // for this API expect the key to live in client-side code exactly like this — it's what the
 // HTTP-referrer restriction is for — so it's fine for it to be visible in the page source.
-const GOOGLE_FONTS_API_KEY = 'AIzaSyCWjhruwdM2gytvCvZYxgm3f8Ir0BFRLqQ';
+const GOOGLE_FONTS_API_KEY = 'API_KEY_HERE';
 
 function clamp(v, min, max){ return Math.min(max, Math.max(min, v)); }
 function lerp(a,b,t){ return a+(b-a)*t; }
