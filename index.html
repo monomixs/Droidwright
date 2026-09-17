@@ -25,11 +25,12 @@
     <div class="brand home-brand">
       <span class="mark"><svg viewBox="0 0 24 24" fill="none"><rect x="1" y="1" width="22" height="22" rx="5" stroke="#5EE1A0" stroke-width="1.4"/><circle cx="12" cy="12" r="5.4" fill="#5EE1A0"/></svg></span>
       Droidwright<small>vector icons</small>
-      <span class="version-badge" title="Current version">v1.2.0 Beta</span>
+      <span class="version-badge" title="Current version">v1.3.0</span>
     </div>
     <div class="home-header-actions">
       <span class="local-badge"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="4" width="20" height="13" rx="2"/><path d="M8 21h8M12 17v4"/></svg>Saved on this device</span>
       <button class="btn icon-only" id="homeInfoBtn" title="About Droidwright & credits" aria-label="About Droidwright"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 16v-5"/><circle cx="12" cy="8" r="0.1" fill="currentColor" stroke-width="2.5"/></svg></button>
+      <button class="btn icon-only" id="homeChangelogBtn" title="Changelog" aria-label="Changelog"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6"/><line x1="8" y1="13" x2="16" y2="13"/><line x1="8" y1="17" x2="16" y2="17"/><line x1="8" y1="9" x2="10" y2="9"/></svg></button>
       <button class="btn" id="homeImportProject" title="Import an SVG file">Import SVG</button>
       <button class="btn primary" id="homeNewProject">New project</button>
     </div>
@@ -37,29 +38,11 @@
 
   <section class="home-content">
     <section class="home-hero">
-      <p class="eyebrow">Local workspace · no account needed</p>
-      <h1>Your icons, precisely drawn.</h1>
-      <p class="hero-sub">Build Android vector drawables on a real dp grid, then export clean XML — every project saves straight to this device, nothing leaves it.</p>
       <div class="spec-strip" id="homeStats">
         <div class="spec-item"><span class="spec-value" id="statIcons">0</span><span class="spec-label">Icons</span></div>
         <div class="spec-item"><span class="spec-value" id="statLayers">0</span><span class="spec-label">Layers</span></div>
         <div class="spec-item"><span class="spec-value" id="statStorage">0 KB</span><span class="spec-label">Local storage</span></div>
         <div class="spec-item"><span class="spec-value" id="statSaved">—</span><span class="spec-label">Last saved</span></div>
-      </div>
-      <div class="hero-blueprint-wrap" aria-hidden="true">
-        <svg class="keyline-diagram hero-blueprint" viewBox="0 0 200 200" focusable="false">
-          <line x1="100" y1="16" x2="100" y2="184" class="bp-cross"/>
-          <line x1="16" y1="100" x2="184" y2="100" class="bp-cross"/>
-          <rect x="30" y="44" width="140" height="112" class="bp-rect"/>
-          <rect x="44" y="30" width="112" height="140" class="bp-rect"/>
-          <rect x="37" y="37" width="126" height="126" class="bp-square"/>
-          <circle cx="100" cy="100" r="70" class="bp-circle"/>
-          <rect x="16" y="16" width="168" height="168" rx="16" class="bp-frame"/>
-          <circle cx="16" cy="16" r="2" class="bp-dot"/><circle cx="184" cy="16" r="2" class="bp-dot"/>
-          <circle cx="16" cy="184" r="2" class="bp-dot"/><circle cx="184" cy="184" r="2" class="bp-dot"/>
-          <circle cx="100" cy="100" r="2" class="bp-dot"/>
-        </svg>
-        <p class="hero-caption">24dp keyline guide</p>
       </div>
     </section>
 
