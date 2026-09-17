@@ -684,9 +684,14 @@ function makeBaseShape(type){
     fillColor: '#000000',
     fillOpacity: 1,
     fillType: 'nonZero',
+    // 'solid' uses fillColor; 'gradient' uses fillGradient (see makeGradient below).
+    fillPaint: 'solid',
+    fillGradient: null,
     strokeEnabled: false,
     strokeColor: '#000000',
     strokeOpacity: 1,
+    strokePaint: 'solid',
+    strokeGradient: null,
     strokeWidth: 1,
     strokeInnerWidth: 0,
     strokeOuterWidth: 0,
@@ -695,6 +700,186 @@ function makeBaseShape(type){
     strokeMiterLimit: 4,
   };
 }
+/* =====================================================================================
+   Gradients
+   A gradient is stored in NORMALIZED space — every geometric value is a 0..1 fraction of
+   the shape's own local bounding box — so a gradient survives resizing, and so the same
+   object can describe both the on-canvas SVG paint server and the exported Android
+   <gradient> (which wants absolute viewport coordinates) without a second source of truth.
+
+     type      'linear' | 'radial' | 'sweep'   (Android: linear / radial / sweep)
+     angle     degrees; 0 = left→right, 90 = top→bottom. Linear direction, sweep start.
+     cx, cy    center, 0..1 of the bbox. Used by radial + sweep.
+     radius    0..1, as a fraction of the bbox's longer side. Radial only.
+     tileMode  'clamp' | 'repeat' | 'mirror'   (SVG spreadMethod pad / repeat / reflect)
+     stops     [{ offset 0..1, color '#rrggbb', opacity 0..1 }], at least two, sorted.
+
+   Per-stop opacity is what gives gradients real transparency: Android has no stop-alpha
+   attribute, so on export the opacity is folded into the color as #AARRGGBB.
+   ===================================================================================== */
+const GRADIENT_TYPES = ['linear', 'radial', 'sweep'];
+const TILE_MODES = ['clamp', 'repeat', 'mirror'];
+const TILE_TO_SPREAD = { clamp:'pad', repeat:'repeat', mirror:'reflect' };
+const SPREAD_TO_TILE = { pad:'clamp', repeat:'repeat', reflect:'mirror' };
+const MAX_GRADIENT_STOPS = 12;
+
+function makeGradientStop(offset, color, opacity){
+  return { offset: clamp(Number(offset) || 0, 0, 1), color: normalizeHexColor(color) || '#000000', opacity: opacity == null ? 1 : clamp(Number(opacity), 0, 1) };
+}
+function makeGradient(type, stops){
+  return {
+    type: GRADIENT_TYPES.indexOf(type) >= 0 ? type : 'linear',
+    angle: 90,
+    cx: 0.5,
+    cy: 0.5,
+    radius: 0.5,
+    tileMode: 'clamp',
+    stops: (stops && stops.length >= 2 ? stops : [makeGradientStop(0, '#5EE1A0', 1), makeGradientStop(1, '#6FA8FF', 1)]).map(s => makeGradientStop(s.offset, s.color, s.opacity)),
+  };
+}
+/* Ready-made ramps. `transparent` ones exist so the alpha channel is discoverable —
+   it's the part of gradient support people most often don't realize is there. */
+const GRADIENT_PRESETS = [
+  { name:'Mint to sky',    type:'linear', angle:90,  stops:[[0,'#5EE1A0',1],[1,'#6FA8FF',1]] },
+  { name:'Sunset',         type:'linear', angle:45,  stops:[[0,'#f5b75e',1],[1,'#ff6b6b',1]] },
+  { name:'Violet haze',    type:'linear', angle:90,  stops:[[0,'#b98cff',1],[1,'#6fa8ff',1]] },
+  { name:'Ember',          type:'linear', angle:0,   stops:[[0,'#ff6b6b',1],[0.55,'#f5b75e',1],[1,'#ffe29a',1]] },
+  { name:'Steel',          type:'linear', angle:90,  stops:[[0,'#9aa1af',1],[1,'#333947',1]] },
+  { name:'Fade out',       type:'linear', angle:90,  stops:[[0,'#000000',1],[1,'#000000',0]] },
+  { name:'Glass',          type:'linear', angle:90,  stops:[[0,'#ffffff',0.85],[1,'#ffffff',0]] },
+  { name:'Spotlight',      type:'radial', angle:90,  stops:[[0,'#ffffff',1],[1,'#6fa8ff',1]] },
+  { name:'Soft vignette',  type:'radial', angle:90,  stops:[[0,'#000000',0],[1,'#000000',0.75]] },
+  { name:'Color wheel',    type:'sweep',  angle:0,   stops:[[0,'#ff6b6b',1],[0.33,'#5ee1a0',1],[0.66,'#6fa8ff',1],[1,'#ff6b6b',1]] },
+];
+function gradientFromPreset(preset){
+  const g = makeGradient(preset.type, preset.stops.map(([o,c,a]) => makeGradientStop(o,c,a)));
+  g.angle = preset.angle;
+  return g;
+}
+/* Accepts anything that's been through localStorage, an import, or an older project file
+   and returns a gradient that's safe to render. */
+function normalizeGradient(raw){
+  if (!raw || typeof raw !== 'object') return makeGradient('linear');
+  const g = makeGradient(raw.type);
+  if (isFinite(raw.angle)) g.angle = ((Number(raw.angle) % 360) + 360) % 360;
+  if (isFinite(raw.cx)) g.cx = clamp(Number(raw.cx), -1, 2);
+  if (isFinite(raw.cy)) g.cy = clamp(Number(raw.cy), -1, 2);
+  if (isFinite(raw.radius)) g.radius = clamp(Number(raw.radius), 0.01, 3);
+  if (TILE_MODES.indexOf(raw.tileMode) >= 0) g.tileMode = raw.tileMode;
+  if (Array.isArray(raw.stops) && raw.stops.length >= 2){
+    g.stops = raw.stops.slice(0, MAX_GRADIENT_STOPS).map(s => makeGradientStop(s.offset, s.color, s.opacity));
+  }
+  return sortGradientStops(g);
+}
+function sortGradientStops(g){
+  g.stops.sort((a, b) => a.offset - b.offset);
+  return g;
+}
+function cloneGradient(g){ return g ? deepClone(g) : null; }
+/* The gradient a shape is actually painting with right now, or null if it's on solid. */
+function activeGradient(shape, kind){
+  const paint = kind === 'stroke' ? shape.strokePaint : shape.fillPaint;
+  if (paint !== 'gradient') return null;
+  const g = kind === 'stroke' ? shape.strokeGradient : shape.fillGradient;
+  return g ? normalizeGradient(g) : null;
+}
+/* Lazily builds a gradient the first time a shape is switched over to one, seeded from
+   the solid color it already had so the switch reads as a continuation, not a reset. */
+function ensureShapeGradient(shape, kind){
+  const key = kind === 'stroke' ? 'strokeGradient' : 'fillGradient';
+  if (shape[key]) { shape[key] = normalizeGradient(shape[key]); return shape[key]; }
+  const base = normalizeHexColor(kind === 'stroke' ? shape.strokeColor : shape.fillColor) || '#5EE1A0';
+  shape[key] = makeGradient('linear', [makeGradientStop(0, base, 1), makeGradientStop(1, shadeHexColor(base, -0.45), 1)]);
+  return shape[key];
+}
+/* Lighten (amount > 0) or darken (amount < 0) a hex color by a ratio. */
+function shadeHexColor(hex, amount){
+  const n = normalizeHexColor(hex);
+  if (!n) return '#000000';
+  const to = amount < 0 ? 0 : 255;
+  const r = Math.abs(amount);
+  const parts = [1,3,5].map(i => {
+    const v = parseInt(n.slice(i, i+2), 16);
+    return clamp(Math.round(v + (to - v) * r), 0, 255).toString(16).padStart(2, '0');
+  });
+  return '#' + parts.join('');
+}
+function hexToRgb(hex){
+  const n = normalizeHexColor(hex) || '#000000';
+  return { r: parseInt(n.slice(1,3),16), g: parseInt(n.slice(3,5),16), b: parseInt(n.slice(5,7),16) };
+}
+function rgbaCss(hex, opacity){
+  const c = hexToRgb(hex);
+  return `rgba(${c.r},${c.g},${c.b},${opacity == null ? 1 : Math.round(opacity*1000)/1000})`;
+}
+/* '#AARRGGBB' — Android's color order, with the stop's opacity as the alpha byte. */
+function androidColorWithAlpha(hex, opacity){
+  const n = normalizeHexColor(hex) || '#000000';
+  const a = clamp(Math.round((opacity == null ? 1 : opacity) * 255), 0, 255).toString(16).padStart(2, '0');
+  return ('#' + a + n.slice(1)).toUpperCase();
+}
+/* Parses #RGB / #RRGGBB / #AARRGGBB (Android) into { hex, opacity }. */
+function parseAndroidColor(raw){
+  const s = String(raw || '').trim();
+  if (/^#[0-9a-fA-F]{8}$/.test(s)){
+    return { hex: ('#' + s.slice(3)).toLowerCase(), opacity: parseInt(s.slice(1,3),16) / 255 };
+  }
+  const n = normalizeHexColor(s);
+  return n ? { hex:n, opacity:1 } : null;
+}
+/* Direction vector for `angle`, as a line through the middle of the unit box.
+   0° points right, 90° points down (SVG's y-axis runs downward). */
+function gradientUnitEndpoints(angle){
+  const rad = (Number(angle) || 0) * Math.PI / 180;
+  const dx = Math.cos(rad) / 2, dy = Math.sin(rad) / 2;
+  return { x1: 0.5 - dx, y1: 0.5 - dy, x2: 0.5 + dx, y2: 0.5 + dy };
+}
+/* Normalized gradient geometry resolved against a real bounding box, in user units.
+   Both the SVG renderer and the Android exporter go through this, so what you see on
+   canvas is what lands in the XML. */
+function gradientUserGeometry(gradient, bbox){
+  const w = Math.max(bbox.width, 1e-4), h = Math.max(bbox.height, 1e-4);
+  const at = (nx, ny) => ({ x: bbox.x + nx * w, y: bbox.y + ny * h });
+  const e = gradientUnitEndpoints(gradient.angle);
+  const start = at(e.x1, e.y1), end = at(e.x2, e.y2);
+  const center = at(gradient.cx, gradient.cy);
+  return {
+    startX: start.x, startY: start.y,
+    endX: end.x, endY: end.y,
+    centerX: center.x, centerY: center.y,
+    radius: Math.max(gradient.radius * Math.max(w, h), 1e-4),
+  };
+}
+/* A CSS gradient string for the editor's preview swatch. Mirrors the SVG output closely
+   enough to be trustworthy while staying cheap to render in a <div>. */
+function gradientCssPreview(gradient){
+  const g = normalizeGradient(gradient);
+  const stops = g.stops.map(s => `${rgbaCss(s.color, s.opacity)} ${Math.round(s.offset*1000)/10}%`).join(', ');
+  if (g.type === 'radial') return `radial-gradient(circle at ${Math.round(g.cx*100)}% ${Math.round(g.cy*100)}%, ${stops})`;
+  if (g.type === 'sweep') return `conic-gradient(from ${fmt(g.angle)}deg at ${Math.round(g.cx*100)}% ${Math.round(g.cy*100)}%, ${stops})`;
+  return `linear-gradient(${fmt(g.angle + 90)}deg, ${stops})`;
+}
+/* Color at an arbitrary position along the ramp — used to build sweep wedges and to
+   pick a sensible color when a new stop is dropped into the middle of the ramp. */
+function sampleGradientColor(g, t){
+  const stops = g.stops;
+  const pos = clamp(t, 0, 1);
+  if (pos <= stops[0].offset) return { color: stops[0].color, opacity: stops[0].opacity };
+  const last = stops[stops.length - 1];
+  if (pos >= last.offset) return { color: last.color, opacity: last.opacity };
+  for (let i = 0; i < stops.length - 1; i++){
+    const a = stops[i], b = stops[i+1];
+    if (pos >= a.offset && pos <= b.offset){
+      const span = b.offset - a.offset;
+      const k = span <= 1e-9 ? 0 : (pos - a.offset) / span;
+      const ca = hexToRgb(a.color), cb = hexToRgb(b.color);
+      const mix = (x, y) => clamp(Math.round(x + (y - x) * k), 0, 255).toString(16).padStart(2, '0');
+      return { color: '#' + mix(ca.r, cb.r) + mix(ca.g, cb.g) + mix(ca.b, cb.b), opacity: a.opacity + (b.opacity - a.opacity) * k };
+    }
+  }
+  return { color: last.color, opacity: last.opacity };
+}
+
 function createRectShape(x,y,w,h){
   const s = makeBaseShape('rect');
   Object.assign(s, { x, y, width:w, height:h, radius:0, radiusTL:null, radiusTR:null, radiusBR:null, radiusBL:null });
@@ -1417,6 +1602,7 @@ function cacheDom(){
   DOM.homeImportProject = document.getElementById('homeImportProject');
   DOM.homeNewProject = document.getElementById('homeNewProject');
   DOM.homeInfoBtn = document.getElementById('homeInfoBtn');
+  DOM.homeChangelogBtn = document.getElementById('homeChangelogBtn');
   DOM.mobileBlockOverlay = document.getElementById('mobileBlockOverlay');
   DOM.referencePanel = document.getElementById('referencePanel');
   DOM.chkReference = document.getElementById('chkReference');
@@ -1563,12 +1749,128 @@ function findShapeById(id){ return state.shapes.find(s => s.id === id) || null; 
 function selectedShapes(){ return state.selectedIds.map(findShapeById).filter(Boolean); }
 function shapeIndex(id){ return state.shapes.findIndex(s => s.id === id); }
 
-function buildShapeFillStrokeAttrs(shape){
+/* ---------------- gradient paint servers ----------------
+   IDs have to be unique across every SVG on the page at once: the stage, the preview
+   strip's ten swatches, the export popover and every home-screen card can all be showing
+   the same shape simultaneously, and duplicate IDs would make them all resolve to
+   whichever definition happened to render last. */
+let __paintServerSeq = 0;
+function nextPaintServerId(prefix){ return `${prefix}-${(__paintServerSeq++).toString(36)}-${Math.random().toString(36).slice(2,7)}`; }
+
+function appendGradientStops(el, gradient){
+  for (const stop of gradient.stops){
+    el.appendChild(svgEl('stop', {
+      offset: fmt(clamp(stop.offset, 0, 1)),
+      'stop-color': stop.color,
+      'stop-opacity': fmt(clamp(stop.opacity == null ? 1 : stop.opacity, 0, 1)),
+    }));
+  }
+}
+/* SVG has no conic paint server, so a sweep is drawn as a fan of wedges inside a
+   <pattern> whose tile is exactly the shape's bounding box. Wrapping it in a pattern
+   (rather than painting wedges into the shape group) keeps the caller's contract simple:
+   every gradient type still resolves to a plain `url(#id)` paint string, so fills,
+   strokes, clipping and PNG export all keep working unchanged. */
+function buildSweepPattern(gradient, bbox, id){
+  const pad = Math.max(bbox.width, bbox.height) * 0.02 + 0.01;
+  const x = bbox.x - pad, y = bbox.y - pad;
+  const w = bbox.width + pad*2, h = bbox.height + pad*2;
+  const pattern = svgEl('pattern', { id, patternUnits:'userSpaceOnUse', x:fmt(x), y:fmt(y), width:fmt(w), height:fmt(h) });
+  const cx = bbox.x + gradient.cx * bbox.width;
+  const cy = bbox.y + gradient.cy * bbox.height;
+  // Reach past the farthest corner so no part of the tile is left unpainted.
+  const reach = Math.hypot(w, h) * 1.1;
+  const group = svgEl('g');
+  group.appendChild(svgEl('rect', { x:fmt(x), y:fmt(y), width:fmt(w), height:fmt(h), fill:gradient.stops[0].color, 'fill-opacity':fmt(gradient.stops[0].opacity) }));
+  const SEGMENTS = 96;
+  const start = (Number(gradient.angle) || 0) * Math.PI / 180;
+  for (let i = 0; i < SEGMENTS; i++){
+    const t0 = i / SEGMENTS, t1 = (i + 1) / SEGMENTS;
+    const a0 = start + t0 * Math.PI * 2;
+    // Overlap neighbours very slightly; without it, antialiasing leaves hairline seams.
+    const a1 = start + t1 * Math.PI * 2 + 0.004;
+    const sample = sampleGradientColor(gradient, (t0 + t1) / 2);
+    const p1x = cx + Math.cos(a0) * reach, p1y = cy + Math.sin(a0) * reach;
+    const p2x = cx + Math.cos(a1) * reach, p2y = cy + Math.sin(a1) * reach;
+    group.appendChild(svgEl('path', {
+      d: `M${fmt(cx)},${fmt(cy)} L${fmt(p1x)},${fmt(p1y)} L${fmt(p2x)},${fmt(p2y)} Z`,
+      fill: sample.color,
+      'fill-opacity': fmt(sample.opacity),
+      'shape-rendering': 'crispEdges',
+    }));
+  }
+  pattern.appendChild(group);
+  return pattern;
+}
+function buildGradientPaintServer(gradient, bbox, id){
+  const geo = gradientUserGeometry(gradient, bbox);
+  const spread = TILE_TO_SPREAD[gradient.tileMode] || 'pad';
+  if (gradient.type === 'sweep') return buildSweepPattern(gradient, bbox, id);
+  if (gradient.type === 'radial'){
+    const el = svgEl('radialGradient', {
+      id, gradientUnits:'userSpaceOnUse', spreadMethod:spread,
+      cx: fmt(geo.centerX), cy: fmt(geo.centerY), r: fmt(geo.radius),
+    });
+    appendGradientStops(el, gradient);
+    return el;
+  }
+  const el = svgEl('linearGradient', {
+    id, gradientUnits:'userSpaceOnUse', spreadMethod:spread,
+    x1: fmt(geo.startX), y1: fmt(geo.startY), x2: fmt(geo.endX), y2: fmt(geo.endY),
+  });
+  appendGradientStops(el, gradient);
+  return el;
+}
+/* Returns the paint string for one channel, registering a paint server in `defsEl` when
+   the shape is on a gradient. Without a defs element to write into there's nowhere to put
+   the server, so it falls back to the shape's solid color. */
+function resolveShapePaint(shape, kind, defsEl){
+  const gradient = activeGradient(shape, kind);
+  const solid = kind === 'stroke' ? shape.strokeColor : shape.fillColor;
+  if (!gradient || !defsEl) return solid;
+  const bbox = paintBBoxForShape(shape);
+  const id = nextPaintServerId(kind === 'stroke' ? 'dwgs' : 'dwgf');
+  defsEl.appendChild(buildGradientPaintServer(gradient, bbox, id));
+  return `url(#${id})`;
+}
+/* Gradient geometry is anchored to the shape's untransformed bounds — the same box the
+   exported pathData lives in — so a group rotation carries the gradient with the shape
+   instead of sliding it across. Degenerate axes (a horizontal line) get a floor so the
+   paint server still has an area to fill. */
+function paintBBoxForShape(shape){
+  const b = localBBoxForShape(shape);
+  return { x: b.x, y: b.y, width: Math.max(b.width, 1e-3), height: Math.max(b.height, 1e-3) };
+}
+/* Boolean ops, merges and cuts build a brand-new path and copy the source shape's look
+   onto it. Those sites already carry the solid color across; this carries the gradient
+   too, so a gradient-filled shape doesn't quietly flatten the moment it's combined.
+   When the source was stroke-only its stroke gradient becomes the result's fill, which
+   mirrors how the existing solid fallback picks up strokeColor. */
+function inheritPaintFrom(target, source){
+  if (!target || !source) return target;
+  const fromStroke = !source.fillEnabled && source.strokeEnabled;
+  const paint = fromStroke ? source.strokePaint : source.fillPaint;
+  const gradient = fromStroke ? source.strokeGradient : source.fillGradient;
+  const usable = paint === 'gradient' && gradient;
+  target.fillPaint = usable ? 'gradient' : 'solid';
+  target.fillGradient = usable ? cloneGradient(gradient) : null;
+  if (target.strokeEnabled && source.strokePaint === 'gradient' && source.strokeGradient){
+    target.strokePaint = 'gradient';
+    target.strokeGradient = cloneGradient(source.strokeGradient);
+  }
+  return target;
+}
+function shapeUsesGradient(shape){
+  return (shape.fillEnabled && shape.fillPaint === 'gradient' && !!shape.fillGradient)
+      || (shape.strokeEnabled && shape.strokePaint === 'gradient' && !!shape.strokeGradient);
+}
+
+function buildShapeFillStrokeAttrs(shape, defsEl){
   return {
-    fill: shape.fillEnabled ? shape.fillColor : 'none',
+    fill: shape.fillEnabled ? resolveShapePaint(shape, 'fill', defsEl) : 'none',
     'fill-opacity': shape.fillEnabled ? shape.fillOpacity : null,
     'fill-rule': shape.fillType === 'evenOdd' ? 'evenodd' : 'nonzero',
-    stroke: shape.strokeEnabled ? shape.strokeColor : 'none',
+    stroke: shape.strokeEnabled ? resolveShapePaint(shape, 'stroke', defsEl) : 'none',
     'stroke-opacity': shape.strokeEnabled ? shape.strokeOpacity : null,
     'stroke-width': shape.strokeEnabled ? shape.strokeWidth : null,
     'stroke-linecap': shape.strokeLineCap,
@@ -1580,7 +1882,10 @@ function buildShapeFillStrokeAttrs(shape){
 function buildShapeVisualGroup(shape){
   const g = svgEl('g', { class:'shape-xform', 'data-id': shape.id });
   g.setAttribute('transform', shapeGroupTransformStr(shape));
-  const path = svgEl('path', Object.assign({ d: shapePathData(shape) }, buildShapeFillStrokeAttrs(shape)));
+  const defs = svgEl('defs');
+  const attrs = buildShapeFillStrokeAttrs(shape, defs);
+  if (defs.childNodes.length) g.appendChild(defs);
+  const path = svgEl('path', Object.assign({ d: shapePathData(shape) }, attrs));
   g.appendChild(path);
   return g;
 }
@@ -1658,15 +1963,22 @@ function renderShapesLayer(){
     const hit = svgEl('path', { d, fill:'rgba(0,0,0,0.001)', stroke:'rgba(0,0,0,0.001)', 'stroke-width': hitStroke, 'pointer-events':'all' });
     const outerWidth = Math.max(0, Number(shape.strokeOuterWidth) || 0);
     const innerWidth = Math.max(0, Number(shape.strokeInnerWidth) || 0);
+    // One defs per shape node holds every paint server this shape needs. The centered,
+    // inner and outer strokes each get their own instance of the stroke gradient —
+    // a paint server can't be shared by reference across elements without them fighting
+    // over the same id, and the cost of a few extra <linearGradient> nodes is trivial.
+    const shapeDefs = svgEl('defs');
     // An outer stroke is painted under the fill; the fill hides its inner half.
     // The inner stroke is clipped to the path interior, so both widths can coexist.
     if (outerWidth > 0){
-      const outer = svgEl('path', { d, fill:'none', stroke:shape.strokeColor, 'stroke-opacity':shape.strokeOpacity, 'stroke-width':outerWidth * 2, 'stroke-linecap':shape.strokeLineCap, 'stroke-linejoin':shape.strokeLineJoin, 'stroke-miterlimit':shape.strokeMiterLimit });
+      const outer = svgEl('path', { d, fill:'none', stroke:resolveShapePaint(shape, 'stroke', shapeDefs), 'stroke-opacity':shape.strokeOpacity, 'stroke-width':outerWidth * 2, 'stroke-linecap':shape.strokeLineCap, 'stroke-linejoin':shape.strokeLineJoin, 'stroke-miterlimit':shape.strokeMiterLimit });
       outer.setAttribute('pointer-events', 'none');
+      xform.appendChild(shapeDefs);
       xform.appendChild(outer);
     }
-    const visible = svgEl('path', Object.assign({ d }, buildShapeFillStrokeAttrs(visibleAttrsSafe(shape))));
+    const visible = svgEl('path', Object.assign({ d }, buildShapeFillStrokeAttrs(visibleAttrsSafe(shape), shapeDefs)));
     visible.setAttribute('pointer-events', 'none');
+    if (!shapeDefs.parentNode && shapeDefs.childNodes.length) xform.appendChild(shapeDefs);
     xform.appendChild(hit);
     xform.appendChild(visible);
     if (innerWidth > 0){
@@ -1676,7 +1988,7 @@ function renderShapesLayer(){
       clip.appendChild(svgEl('path', { d, 'clip-rule':shape.fillType === 'evenOdd' ? 'evenodd' : 'nonzero' }));
       defs.appendChild(clip);
       xform.appendChild(defs);
-      const inner = svgEl('path', { d, fill:'none', stroke:shape.strokeColor, 'stroke-opacity':shape.strokeOpacity, 'stroke-width':innerWidth * 2, 'stroke-linecap':shape.strokeLineCap, 'stroke-linejoin':shape.strokeLineJoin, 'stroke-miterlimit':shape.strokeMiterLimit, 'clip-path':'url(#' + clipId + ')' });
+      const inner = svgEl('path', { d, fill:'none', stroke:resolveShapePaint(shape, 'stroke', defs), 'stroke-opacity':shape.strokeOpacity, 'stroke-width':innerWidth * 2, 'stroke-linecap':shape.strokeLineCap, 'stroke-linejoin':shape.strokeLineJoin, 'stroke-miterlimit':shape.strokeMiterLimit, 'clip-path':'url(#' + clipId + ')' });
       inner.setAttribute('pointer-events', 'none');
       xform.appendChild(inner);
     }
@@ -3504,6 +3816,7 @@ function performBooleanOp(op){
       fillType: 'evenOdd',
       strokeEnabled: false,
     });
+    inheritPaintFrom(newShape, primary);
 
     doAction(() => {
       const idx = shapeIndex(primary.id);
@@ -3544,6 +3857,7 @@ function performBooleanOp(op){
       fillType: op === 'subtract' ? 'evenOdd' : (primary.fillType || 'nonZero'),
       strokeEnabled: false,
     });
+    inheritPaintFrom(newShape, primary);
 
     doAction(() => {
       const idx = shapeIndex(primary.id);
@@ -3644,6 +3958,7 @@ function mergeSelectedShapesIntoPath(){
     strokeLineJoin: topmost.strokeLineJoin,
     strokeMiterLimit: topmost.strokeMiterLimit,
   });
+  inheritPaintFrom(newShape, topmost);
 
   doAction(() => {
     const idx = shapeIndex(topmost.id);
@@ -4645,6 +4960,7 @@ function performCutOperation(cutShape){
           strokeEnabled: false,
           groupId: target.groupId,
         });
+        inheritPaintFrom(newShape, target);
         state.shapes.splice(idx, 1, newShape);
         const selIdx = state.selectedIds.indexOf(target.id);
         if (selIdx >= 0) state.selectedIds.splice(selIdx, 1, newShape.id);
@@ -5399,16 +5715,126 @@ function transformRowsHtml(shape){
       <button class="btn small" data-action="resetTransform">Reset</button>
     </div>`;
 }
+/* ---------------- gradient editor ----------------
+   `kind` is 'fill' or 'stroke'; every control carries it in the field name so one set of
+   markup and one set of handlers drives both channels. */
+function gradientEditorHtml(shape, kind){
+  const g = normalizeGradient(kind === 'stroke' ? shape.strokeGradient : shape.fillGradient);
+  const f = (name) => `${kind}Grad${name}`;
+  const isLinear = g.type === 'linear';
+  const isRadial = g.type === 'radial';
+  const isSweep = g.type === 'sweep';
+
+  const typeRow = `
+    <div class="field"><label>Style</label>
+      <div class="segmented">
+        <button data-field="${f('Type')}" data-value="linear" class="${isLinear?'active':''}">Linear</button>
+        <button data-field="${f('Type')}" data-value="radial" class="${isRadial?'active':''}">Radial</button>
+        <button data-field="${f('Type')}" data-value="sweep" class="${isSweep?'active':''}">Sweep</button>
+      </div>
+    </div>`;
+
+  // Linear uses a direction angle; radial a center and radius; sweep both a center and
+  // the angle its ramp starts from.
+  let geometryRows = '';
+  if (isLinear || isSweep){
+    geometryRows += `
+    <div class="field">
+      <label>${isSweep ? 'Start angle' : 'Angle'} <span class="grad-readout">${fmt(g.angle)}°</span></label>
+      <input type="range" min="0" max="360" step="1" data-field="${f('Angle')}" value="${fmt(g.angle)}">
+    </div>
+    <div class="btn-row grad-angle-row">
+      <button class="btn small" data-grad-action="angle" data-kind="${kind}" data-value="0">→ 0°</button>
+      <button class="btn small" data-grad-action="angle" data-kind="${kind}" data-value="90">↓ 90°</button>
+      <button class="btn small" data-grad-action="angle" data-kind="${kind}" data-value="180">← 180°</button>
+      <button class="btn small" data-grad-action="angle" data-kind="${kind}" data-value="45">↘ 45°</button>
+    </div>`;
+  }
+  if (isRadial || isSweep){
+    geometryRows += `
+    <div class="row">
+      <div class="field"><label>Center X</label><input type="number" step="0.05" min="-1" max="2" data-field="${f('Cx')}" value="${fmt(g.cx)}"></div>
+      <div class="field"><label>Center Y</label><input type="number" step="0.05" min="-1" max="2" data-field="${f('Cy')}" value="${fmt(g.cy)}"></div>
+    </div>`;
+  }
+  if (isRadial){
+    geometryRows += `
+    <div class="field">
+      <label>Radius <span class="grad-readout">${Math.round(g.radius*100)}%</span></label>
+      <input type="range" min="5" max="200" step="1" data-field="${f('Radius')}" value="${Math.round(g.radius*100)}">
+    </div>`;
+  }
+
+  const stopsHtml = g.stops.map((stop, i) => `
+    <div class="grad-stop" data-stop-row="${i}" data-kind="${kind}">
+      <span class="drag-handle" data-tip="Drag to reorder">⠿</span>
+      <span class="swatch grad-stop-swatch"><i style="background:${rgbaCss(stop.color, stop.opacity)}"></i><input type="color" data-field="${f('StopColor')}" data-stop-index="${i}" value="${stop.color}"></span>
+      <input type="text" class="hexinput grad-stop-hex" data-field="${f('StopColor')}" data-stop-index="${i}" value="${stop.color}" maxlength="9" spellcheck="false">
+      <label class="grad-stop-num" title="Position along the ramp">
+        <input type="number" min="0" max="100" step="1" data-field="${f('StopOffset')}" data-stop-index="${i}" value="${Math.round(stop.offset*100)}" data-no-stepper="1"><span>%</span>
+      </label>
+      <label class="grad-stop-num" title="Stop transparency">
+        <input type="number" min="0" max="100" step="1" data-field="${f('StopOpacity')}" data-stop-index="${i}" value="${Math.round(stop.opacity*100)}" data-no-stepper="1"><span>α</span>
+      </label>
+      <button class="grad-stop-del" data-grad-action="removeStop" data-kind="${kind}" data-stop-index="${i}" title="${g.stops.length <= 2 ? 'A gradient needs at least two stops' : 'Remove this stop'}" ${g.stops.length <= 2 ? 'disabled' : ''} aria-label="Remove stop ${i+1}">✕</button>
+    </div>`).join('');
+
+  const presetsHtml = GRADIENT_PRESETS.map((p, i) =>
+    `<button class="grad-preset" data-grad-action="preset" data-kind="${kind}" data-preset-index="${i}" title="${escapeHtml(p.name)}" aria-label="${escapeHtml(p.name)}" style="--ramp:${gradientCssPreview(gradientFromPreset(p))}"></button>`
+  ).join('');
+
+  return `
+    <div class="grad-preview" style="--ramp:${gradientCssPreview(g)}" aria-hidden="true"></div>
+    ${typeRow}
+    ${geometryRows}
+    <div class="field"><label>Repeat beyond the ramp</label>
+      <div class="segmented">
+        <button data-field="${f('Tile')}" data-value="clamp" class="${g.tileMode==='clamp'?'active':''}">Clamp</button>
+        <button data-field="${f('Tile')}" data-value="repeat" class="${g.tileMode==='repeat'?'active':''}">Repeat</button>
+        <button data-field="${f('Tile')}" data-value="mirror" class="${g.tileMode==='mirror'?'active':''}">Mirror</button>
+      </div>
+    </div>
+    <div class="grad-stops-head">
+      <span>Color stops</span>
+      <span class="hint">${g.stops.length} of ${MAX_GRADIENT_STOPS}</span>
+    </div>
+    <div class="grad-stops">${stopsHtml}</div>
+    <div class="btn-row">
+      <button class="btn small" data-grad-action="addStop" data-kind="${kind}" ${g.stops.length >= MAX_GRADIENT_STOPS ? 'disabled' : ''}>Add stop</button>
+      <button class="btn small" data-grad-action="reverse" data-kind="${kind}">Reverse</button>
+      <button class="btn small" data-grad-action="distribute" data-kind="${kind}" title="Space the stops evenly along the ramp">Even out</button>
+    </div>
+    <div class="grad-presets-head">Presets</div>
+    <div class="grad-presets">${presetsHtml}</div>
+    <div class="hint">α sets each stop's transparency. Gradients export as an Android <b>&lt;gradient&gt;</b> and need minSdk 24.</div>`;
+}
+function paintModeSegmentHtml(shape, kind){
+  const current = (kind === 'stroke' ? shape.strokePaint : shape.fillPaint) === 'gradient' ? 'gradient' : 'solid';
+  const field = kind === 'stroke' ? 'strokePaintMode' : 'fillPaintMode';
+  return `
+    <div class="field"><label>Paint</label>
+      <div class="segmented">
+        <button data-field="${field}" data-value="solid" class="${current==='solid'?'active':''}">Solid</button>
+        <button data-field="${field}" data-value="gradient" class="${current==='gradient'?'active':''}">Gradient</button>
+      </div>
+    </div>`;
+}
 function fillRowsHtml(shape){
   let html = `<label class="checkbox-row"><input type="checkbox" class="sw" data-field="fillEnabled" ${shape.fillEnabled?'checked':''}><span>Filled</span></label>`;
   if (shape.fillEnabled){
+    html += paintModeSegmentHtml(shape, 'fill');
+    if (shape.fillPaint === 'gradient'){
+      html += gradientEditorHtml(shape, 'fill');
+    } else {
+      html += `
+      <div class="color-field">
+        <span class="swatch"><i style="background:${shape.fillColor}"></i><input type="color" data-field="fillColor" value="${shape.fillColor}"></span>
+        <input type="text" class="hexinput" data-field="fillColor" value="${shape.fillColor}" maxlength="9" spellcheck="false">
+      </div>
+      <div class="presets">${colorPresetsHtml('fillColor')}</div>`;
+    }
     html += `
-    <div class="color-field">
-      <span class="swatch"><i style="background:${shape.fillColor}"></i><input type="color" data-field="fillColor" value="${shape.fillColor}"></span>
-      <input type="text" class="hexinput" data-field="fillColor" value="${shape.fillColor}" maxlength="9" spellcheck="false">
-    </div>
     <div class="field"><label>Opacity ${Math.round(shape.fillOpacity*100)}%</label><input type="range" min="0" max="100" data-field="fillOpacity" value="${Math.round(shape.fillOpacity*100)}"></div>
-    <div class="presets">${colorPresetsHtml('fillColor')}</div>
     <div class="field"><label>Fill rule</label>
       <div class="segmented">
         <button data-field="fillType" data-value="nonZero" class="${shape.fillType!=='evenOdd'?'active':''}">Non-zero</button>
@@ -5421,11 +5847,18 @@ function fillRowsHtml(shape){
 function strokeRowsHtml(shape){
   let html = `<label class="checkbox-row"><input type="checkbox" class="sw" data-field="strokeEnabled" ${shape.strokeEnabled?'checked':''}><span>Stroked</span></label>`;
   if (shape.strokeEnabled){
+    html += paintModeSegmentHtml(shape, 'stroke');
+    if (shape.strokePaint === 'gradient'){
+      html += gradientEditorHtml(shape, 'stroke');
+    } else {
+      html += `
+      <div class="color-field">
+        <span class="swatch"><i style="background:${shape.strokeColor}"></i><input type="color" data-field="strokeColor" value="${shape.strokeColor}"></span>
+        <input type="text" class="hexinput" data-field="strokeColor" value="${shape.strokeColor}" maxlength="9" spellcheck="false">
+      </div>
+      <div class="presets">${colorPresetsHtml('strokeColor')}</div>`;
+    }
     html += `
-    <div class="color-field">
-      <span class="swatch"><i style="background:${shape.strokeColor}"></i><input type="color" data-field="strokeColor" value="${shape.strokeColor}"></span>
-      <input type="text" class="hexinput" data-field="strokeColor" value="${shape.strokeColor}" maxlength="9" spellcheck="false">
-    </div>
     <div class="row">
       <div class="field"><label>Center width</label><input type="number" step="0.1" min="0" data-field="strokeWidth" value="${fmt(shape.strokeWidth)}"></div>
       <div class="field"><label>Opacity ${Math.round(shape.strokeOpacity*100)}%</label><input type="range" min="0" max="100" data-field="strokeOpacity" value="${Math.round(shape.strokeOpacity*100)}"></div>
@@ -5581,6 +6014,12 @@ function setShapePosAxis(shape, axis, val){
     else shape.translateY = (shape.scaleY - 1) * shape.height / 2;
   }
 }
+/* Splits a gradient field name like 'fillGradType' into its channel and property.
+   Returns null for anything that isn't a gradient field. */
+function parseGradientField(field){
+  const m = /^(fill|stroke)Grad([A-Za-z]+)$/.exec(field || '');
+  return m ? { kind: m[1], prop: m[2] } : null;
+}
 function applySegmentedField(s, field, value){
   if (field === 'strokeCap') s.strokeLineCap = value;
   else if (field === 'strokeJoin') s.strokeLineJoin = value;
@@ -5588,6 +6027,15 @@ function applySegmentedField(s, field, value){
   else if (field === 'fillColor'){ s.fillColor = value; state.lastFillColor = value; }
   else if (field === 'strokeColor'){ s.strokeColor = value; state.lastStrokeColor = value; }
   else if (field === 'textAlign' && s.type === 'text') s.textAlign = value;
+  else if (field === 'fillPaintMode'){ s.fillPaint = value === 'gradient' ? 'gradient' : 'solid'; if (value === 'gradient') ensureShapeGradient(s, 'fill'); }
+  else if (field === 'strokePaintMode'){ s.strokePaint = value === 'gradient' ? 'gradient' : 'solid'; if (value === 'gradient') ensureShapeGradient(s, 'stroke'); }
+  else {
+    const gf = parseGradientField(field);
+    if (!gf) return;
+    const g = ensureShapeGradient(s, gf.kind);
+    if (gf.prop === 'Type' && GRADIENT_TYPES.indexOf(value) >= 0) g.type = value;
+    else if (gf.prop === 'Tile' && TILE_MODES.indexOf(value) >= 0) g.tileMode = value;
+  }
 }
 // Fields whose effect on a text shape requires re-tracing the glyph outline (async: the
 // font file has to be fetched/parsed the first time a given family+weight+style is used).
@@ -5665,7 +6113,106 @@ function applyFieldChange(field, inputEl){
     case 'letterSpacing': for (const s of shapes) if (s.type==='text') s.letterSpacing = isNaN(num) ? 0 : num; break;
     case 'fontWeight': for (const s of shapes) if (s.type==='text') s.fontWeight = Math.round(num) || 400; break;
     case 'fontItalic': for (const s of shapes) if (s.type==='text') s.fontItalic = !!raw; break;
+    default: return applyGradientFieldChange(field, inputEl, shapes, raw, num);
   }
+}
+/* Gradient controls all funnel through here. Returns false on an unusable value so the
+   caller can roll the edit back, matching how the hex inputs already behave. */
+function applyGradientFieldChange(field, inputEl, shapes, raw, num){
+  const gf = parseGradientField(field);
+  if (!gf) return;
+  const stopIndex = inputEl.dataset.stopIndex != null ? parseInt(inputEl.dataset.stopIndex, 10) : -1;
+
+  // A hex value that's still being typed shouldn't blow away the stop's current color.
+  let hex = null;
+  if (gf.prop === 'StopColor'){
+    hex = inputEl.type === 'text' ? normalizeHexColor(raw) : normalizeHexColor(String(raw));
+    if (!hex) return false;
+  }
+
+  for (const s of shapes){
+    const g = ensureShapeGradient(s, gf.kind);
+    switch (gf.prop){
+      case 'Angle': g.angle = isNaN(num) ? 0 : ((num % 360) + 360) % 360; break;
+      case 'Cx': g.cx = isNaN(num) ? 0.5 : clamp(num, -1, 2); break;
+      case 'Cy': g.cy = isNaN(num) ? 0.5 : clamp(num, -1, 2); break;
+      case 'Radius': g.radius = isNaN(num) ? 0.5 : clamp(num / 100, 0.01, 3); break;
+      case 'StopColor': if (g.stops[stopIndex]) g.stops[stopIndex].color = hex; break;
+      case 'StopOffset': if (g.stops[stopIndex]) g.stops[stopIndex].offset = isNaN(num) ? 0 : clamp(num / 100, 0, 1); break;
+      case 'StopOpacity': if (g.stops[stopIndex]) g.stops[stopIndex].opacity = isNaN(num) ? 1 : clamp(num / 100, 0, 1); break;
+    }
+  }
+}
+/* Stops are kept sorted by offset so the renderer and exporter can walk them linearly.
+   Re-sorting while someone is dragging an offset would yank the row out from under the
+   cursor, so it's deferred to commit time. */
+function sortGradientStopsForSelection(){
+  for (const s of selectedShapes()){
+    if (s.fillGradient) sortGradientStops(s.fillGradient);
+    if (s.strokeGradient) sortGradientStops(s.strokeGradient);
+  }
+}
+/* Drag-to-reorder for the stop list. This deliberately moves the COLOR to a new slot
+   rather than moving the stop's offset — the set of positions along the ramp stays
+   exactly where it was, only which color occupies which position changes. That keeps
+   the array staying sorted by offset (required for correct SVG/Android rendering)
+   without a re-sort, and matches the gesture: "put this color earlier/later," not
+   "move this position elsewhere." */
+function moveGradientStop(gradient, fromIndex, toIndex){
+  if (!gradient) return;
+  const n = gradient.stops.length;
+  if (fromIndex < 0 || fromIndex >= n || toIndex < 0 || toIndex >= n || fromIndex === toIndex) return;
+  const offsets = gradient.stops.map(s => s.offset);
+  const contents = gradient.stops.map(s => ({ color: s.color, opacity: s.opacity }));
+  const [moved] = contents.splice(fromIndex, 1);
+  contents.splice(toIndex, 0, moved);
+  gradient.stops = contents.map((c, i) => makeGradientStop(offsets[i], c.color, c.opacity));
+}
+/* Buttons inside the gradient editor: presets, stop add/remove, and ramp tweaks.
+   Each returns after mutating so the caller can re-render the whole panel — these change
+   the editor's shape, not just a value. */
+function handleGradientAction(btn){
+  const action = btn.dataset.gradAction;
+  const kind = btn.dataset.kind === 'stroke' ? 'stroke' : 'fill';
+  const shapes = selectedShapes();
+  if (!shapes.length) return;
+
+  doAction(() => {
+    for (const s of shapes){
+      const g = ensureShapeGradient(s, kind);
+      if (action === 'preset'){
+        const preset = GRADIENT_PRESETS[parseInt(btn.dataset.presetIndex, 10)];
+        if (!preset) continue;
+        const next = gradientFromPreset(preset);
+        // Keep where the user has already aimed a radial/sweep gradient.
+        next.cx = g.cx; next.cy = g.cy; next.radius = g.radius; next.tileMode = g.tileMode;
+        if (kind === 'stroke') s.strokeGradient = next; else s.fillGradient = next;
+      } else if (action === 'addStop'){
+        if (g.stops.length >= MAX_GRADIENT_STOPS) continue;
+        // Drop the new stop into the widest gap so it lands somewhere useful.
+        let gapAt = 0.5, widest = -1;
+        for (let i = 0; i < g.stops.length - 1; i++){
+          const gap = g.stops[i+1].offset - g.stops[i].offset;
+          if (gap > widest){ widest = gap; gapAt = g.stops[i].offset + gap / 2; }
+        }
+        const sample = sampleGradientColor(g, gapAt);
+        g.stops.push(makeGradientStop(gapAt, sample.color, sample.opacity));
+        sortGradientStops(g);
+      } else if (action === 'removeStop'){
+        const idx = parseInt(btn.dataset.stopIndex, 10);
+        if (g.stops.length > 2 && idx >= 0 && idx < g.stops.length) g.stops.splice(idx, 1);
+      } else if (action === 'reverse'){
+        g.stops = g.stops.map(st => makeGradientStop(1 - st.offset, st.color, st.opacity));
+        sortGradientStops(g);
+      } else if (action === 'distribute'){
+        const n = g.stops.length;
+        g.stops.forEach((st, i) => { st.offset = n <= 1 ? 0 : i / (n - 1); });
+      } else if (action === 'angle'){
+        g.angle = clamp(parseFloat(btn.dataset.value) || 0, 0, 360);
+      }
+    }
+  });
+  renderPropertiesPanel();
 }
 function handlePropertiesAction(action){
   switch(action){
@@ -5718,6 +6265,10 @@ function updateRangeLabelIfNeeded(t){
   const field = t.closest('.field');
   const label = field && field.querySelector('label');
   if (!label) return;
+  // Gradient rows keep their value in a dedicated span with its own unit (° or %), so
+  // leave those alone — refreshGradientPreviewIfNeeded() updates them without flattening
+  // the label's markup the way the textContent rewrite below would.
+  if (label.querySelector('.grad-readout')) return;
   const pct = Math.round(parseFloat(t.value));
   const txt = label.textContent;
   const prefix = txt.split(/\d/)[0].trim();
@@ -5729,6 +6280,33 @@ function updateSwatchPreviewIfNeeded(t){
   if (wrap){ const i = wrap.querySelector('i'); if (i) i.style.background = t.value; }
   const colorField = t.closest('.color-field');
   if (colorField){ const hexIn = colorField.querySelector('.hexinput'); if (hexIn && document.activeElement !== hexIn) hexIn.value = t.value; }
+  const stopRow = t.closest('.grad-stop');
+  if (stopRow){ const hexIn = stopRow.querySelector('.hexinput'); if (hexIn && document.activeElement !== hexIn) hexIn.value = t.value; }
+}
+/* Repaints the editor's ramp bar and the small per-stop swatches in place. Rebuilding the
+   panel here instead would drop focus mid-drag, which is exactly when you least want it. */
+function refreshGradientPreviewIfNeeded(field){
+  const gf = parseGradientField(field);
+  if (!gf && field !== 'fillPaintMode' && field !== 'strokePaintMode') return;
+  const shapes = selectedShapes();
+  if (shapes.length !== 1) return;
+  const kind = gf ? gf.kind : (field === 'strokePaintMode' ? 'stroke' : 'fill');
+  const gradient = activeGradient(shapes[0], kind);
+  if (!gradient) return;
+  const sectionId = kind === 'stroke' ? 'sec-stroke' : 'sec-fill';
+  const section = document.getElementById(sectionId);
+  if (!section) return;
+  const bar = section.querySelector('.grad-preview');
+  if (bar) bar.style.setProperty('--ramp', gradientCssPreview(gradient));
+  section.querySelectorAll('.grad-stop').forEach((row, i) => {
+    const stop = gradient.stops[i];
+    const dot = row.querySelector('.grad-stop-swatch i');
+    if (stop && dot) dot.style.background = rgbaCss(stop.color, stop.opacity);
+  });
+  // The angle/radius readouts sit outside .field label handling, so refresh them here.
+  const readout = (selector, text) => { const el = section.querySelector(selector); if (el) el.textContent = text; };
+  if (gf && gf.prop === 'Angle') readout('.grad-readout', fmt(gradient.angle) + '°');
+  if (gf && gf.prop === 'Radius') readout('.grad-readout', Math.round(gradient.radius * 100) + '%');
 }
 function onSelectionPanelsInput(e){
   const t = e.target;
@@ -5743,6 +6321,7 @@ function onSelectionPanelsInput(e){
   }
   updateRangeLabelIfNeeded(t);
   updateSwatchPreviewIfNeeded(t);
+  refreshGradientPreviewIfNeeded(field);
 }
 function onSelectionPanelsChange(e){
   const t = e.target;
@@ -5783,10 +6362,26 @@ function onSelectionPanelsChange(e){
   beginEdit();
   const ok = applyFieldChange(field, t);
   if (ok === false){ __historySnapshotBeforeEdit = null; renderPropertiesPanel(); showToast('Invalid hex color'); return; }
+  const gf = parseGradientField(field);
+  // Offsets are only re-sorted once the value is committed — doing it on every keystroke
+  // would reorder the rows while the pointer is still on one of them.
+  if (gf && gf.prop === 'StopOffset') sortGradientStopsForSelection();
   commitEdit();
   renderAll();
+  if (gf && gf.prop === 'StopOffset') renderPropertiesPanel();
 }
+/* Segmented fields that change which controls exist, not just a value — switching paint
+   mode or gradient style has to rebuild the panel or the new controls never appear. */
+const PANEL_REBUILDING_FIELDS = new Set(['fillPaintMode', 'strokePaintMode', 'fillGradType', 'strokeGradType']);
 function onSelectionPanelsClick(e){
+  // Gradient buttons carry data-value too, so they're matched before the generic
+  // segmented-control branch would swallow them.
+  const gradBtn = e.target.closest('[data-grad-action]');
+  if (gradBtn){
+    if (gradBtn.disabled) return;
+    handleGradientAction(gradBtn);
+    return;
+  }
   const segBtn = e.target.closest('[data-field][data-value]');
   if (segBtn){
     const field = segBtn.dataset.field, value = segBtn.dataset.value;
@@ -5797,6 +6392,7 @@ function onSelectionPanelsClick(e){
       return;
     }
     doAction(() => { for (const s of selectedShapes()) applySegmentedField(s, field, value); });
+    if (PANEL_REBUILDING_FIELDS.has(field)) renderPropertiesPanel();
     return;
   }
   const actBtn = e.target.closest('[data-action]');
@@ -5883,7 +6479,6 @@ function renderLayers(){
         const li = document.createElement('li');
         li.className = 'layer-item' + (state.selectedIds.includes(mShape.id) ? ' selected' : '');
         li.dataset.id = mShape.id;
-        li.draggable = true;
         li.innerHTML = buildLayerItemHtml(mShape);
         itemsContainer.appendChild(li);
       }
@@ -5894,7 +6489,6 @@ function renderLayers(){
       const li = document.createElement('li');
       li.className = 'layer-item' + (state.selectedIds.includes(shape.id) ? ' selected' : '');
       li.dataset.id = shape.id;
-      li.draggable = true;
       li.innerHTML = buildLayerItemHtml(shape);
       list.appendChild(li);
     }
@@ -5904,6 +6498,55 @@ function renderLayers(){
   DOM.layerTabBadge.textContent = state.shapes.length;
 }
 
+let __layerDragActive = false;
+/* Pointer-based reorder for the layers list — mirrors onGradStopHandlePointerDown, and
+   for the same reason: this page's window-level dragover/drop listener (for importing an
+   SVG or JSON file dropped anywhere on the canvas) forces dropEffect to 'copy' on every
+   drag it sees, which fights with a reorder drag's effectAllowed of 'move' and can make
+   native HTML5 drag-and-drop silently refuse the drop.
+   Rows can be nested two levels deep — a plain top-level <li>, or an <li> inside a
+   group's own item list — so hit-testing gathers every .layer-item in the whole list
+   rather than scoping to one parent the way the gradient stop version does. Dragging
+   across group boundaries is intentionally allowed, matching the list's existing
+   behavior: this only reorders z-stacking, which is a separate concern from group
+   membership (that's what Group/Ungroup are for). Rows inside a collapsed group are
+   display:none and filtered out via offsetParent, the same way they were naturally
+   unreachable to a real pointer under the old native-drag version. */
+function onLayerHandlePointerDown(e){
+  if (e.button != null && e.button !== 0) return;
+  const handle = e.target.closest('.drag-handle');
+  const row = handle && handle.closest('.layer-item');
+  if (!row || __layerDragActive) return;
+  e.preventDefault();
+  __layerDragActive = true;
+  const rows = Array.from(DOM.layerList.querySelectorAll('.layer-item')).filter(el => el.offsetParent !== null);
+  const fromIndex = rows.indexOf(row);
+  const dragSrcId = row.dataset.id;
+  let hoverIndex = fromIndex;
+  row.classList.add('dragging');
+
+  function onMove(ev){
+    hoverIndex = rowIndexAtY(rows, ev.clientY);
+    rows.forEach((r, i) => r.classList.toggle('dragover', i === hoverIndex && i !== fromIndex));
+  }
+  function onUp(){
+    window.removeEventListener('pointermove', onMove);
+    window.removeEventListener('pointerup', onUp);
+    window.removeEventListener('pointercancel', onUp);
+    rows.forEach(r => r.classList.remove('dragging', 'dragover'));
+    __layerDragActive = false;
+    if (hoverIndex !== fromIndex && fromIndex !== -1){
+      const targetId = rows[hoverIndex].dataset.id;
+      doAction(() => {
+        const idx = shapeIndex(targetId);
+        reorderShapeTo(dragSrcId, state.shapes[idx+1] ? state.shapes[idx+1].id : null);
+      });
+    }
+  }
+  window.addEventListener('pointermove', onMove);
+  window.addEventListener('pointerup', onUp);
+  window.addEventListener('pointercancel', onUp);
+}
 function wireLayerList(){
   DOM.layerList.addEventListener('click', (e) => {
     const toggleBtn = e.target.closest('.grp-toggle');
@@ -5991,36 +6634,7 @@ function wireLayerList(){
     }
   });
 
-  let dragSrcId = null;
-  DOM.layerList.addEventListener('dragstart', (e) => {
-    const li = e.target.closest('.layer-item');
-    if (!li){ e.preventDefault(); return; }
-    dragSrcId = li.dataset.id;
-    e.dataTransfer.effectAllowed = 'move';
-  });
-  DOM.layerList.addEventListener('dragover', (e) => {
-    e.preventDefault();
-    const li = e.target.closest('.layer-item');
-    document.querySelectorAll('.layer-item.dragover').forEach(el => el.classList.remove('dragover'));
-    if (li) li.classList.add('dragover');
-  });
-  DOM.layerList.addEventListener('dragleave', (e) => {
-    const li = e.target.closest('.layer-item');
-    if (li) li.classList.remove('dragover');
-  });
-  DOM.layerList.addEventListener('drop', (e) => {
-    e.preventDefault();
-    document.querySelectorAll('.layer-item.dragover').forEach(el => el.classList.remove('dragover'));
-    const li = e.target.closest('.layer-item');
-    if (!li || !dragSrcId) return;
-    const targetId = li.dataset.id;
-    if (targetId === dragSrcId){ dragSrcId=null; return; }
-    doAction(() => {
-      const idx = shapeIndex(targetId);
-      reorderShapeTo(dragSrcId, state.shapes[idx+1] ? state.shapes[idx+1].id : null);
-    });
-    dragSrcId = null;
-  });
+  DOM.layerList.addEventListener('pointerdown', onLayerHandlePointerDown);
 
   const btnGrp = document.getElementById('btnLayerGroup');
   const btnUngrp = document.getElementById('btnLayerUngroup');
@@ -6033,11 +6647,46 @@ function wireLayerList(){
 /* =====================================================================================
    Part 8: Android XML generation, syntax highlight, copy / export, save & load project
    ===================================================================================== */
+/* Android carries gradients as an inline <aapt:attr> child of <path> rather than as an
+   attribute value — it's the AAPT2 mechanism for giving an attribute a whole nested
+   resource. Requires the aapt namespace on <vector>, and minSdk 24. */
+function gradientXmlLines(gradient, bbox, attrName, indent){
+  const g = normalizeGradient(gradient);
+  const geo = gradientUserGeometry(g, bbox);
+  const out = [];
+  const inner = indent + '    ';
+  const deep = inner + '    ';
+  out.push(`${indent}<aapt:attr name="android:${attrName}">`);
+  let gAttrs = `android:type="${g.type}"`;
+  if (g.type === 'linear'){
+    gAttrs += `\n${deep}android:startX="${fmtAttr(geo.startX)}"`;
+    gAttrs += `\n${deep}android:startY="${fmtAttr(geo.startY)}"`;
+    gAttrs += `\n${deep}android:endX="${fmtAttr(geo.endX)}"`;
+    gAttrs += `\n${deep}android:endY="${fmtAttr(geo.endY)}"`;
+  } else {
+    gAttrs += `\n${deep}android:centerX="${fmtAttr(geo.centerX)}"`;
+    gAttrs += `\n${deep}android:centerY="${fmtAttr(geo.centerY)}"`;
+    if (g.type === 'radial') gAttrs += `\n${deep}android:gradientRadius="${fmtAttr(geo.radius)}"`;
+  }
+  if (g.tileMode !== 'clamp') gAttrs += `\n${deep}android:tileMode="${g.tileMode}"`;
+  out.push(`${inner}<gradient ${gAttrs}>`);
+  for (const stop of g.stops){
+    out.push(`${deep}<item android:offset="${fmtAttr(stop.offset)}" android:color="${androidColorWithAlpha(stop.color, stop.opacity)}"/>`);
+  }
+  out.push(`${inner}</gradient>`);
+  out.push(`${indent}</aapt:attr>`);
+  return out;
+}
+function docUsesGradients(){
+  return state.shapes.some(s => s.visible && shapeUsesGradient(s));
+}
 function generateXmlString(){
   const d = state.doc;
   const lines = [];
   lines.push('<?xml version="1.0" encoding="utf-8"?>');
+  const needsAapt = docUsesGradients();
   let vecAttrs = 'xmlns:android="http://schemas.android.com/apk/res/android"';
+  if (needsAapt) vecAttrs += '\n    xmlns:aapt="http://schemas.android.com/aapt"';
   vecAttrs += `\n    android:width="${fmtAttr(d.width)}dp"`;
   vecAttrs += `\n    android:height="${fmtAttr(d.height)}dp"`;
   vecAttrs += `\n    android:viewportWidth="${fmtAttr(d.viewportWidth)}"`;
@@ -6086,22 +6735,34 @@ function generateXmlString(){
       lines.push(`${indent}<group ${gAttrs}>`);
     }
     const pindent = hasGroup ? indent+'    ' : indent;
+    const fillGradient = activeGradient(shape, 'fill');
+    const strokeGradient = activeGradient(shape, 'stroke');
+    const gradientChildren = [];
+    const paintBox = paintBBoxForShape(shape);
     let pAttrs = `android:name="${uniqueName(baseName)}"`;
     pAttrs += `\n${pindent}    android:pathData="${shapePathData(shape)}"`;
     if (shape.fillEnabled){
-      pAttrs += `\n${pindent}    android:fillColor="${shape.fillColor}"`;
+      if (shape.fillEnabled && fillGradient) gradientChildren.push(...gradientXmlLines(fillGradient, paintBox, 'fillColor', pindent + '    '));
+      else pAttrs += `\n${pindent}    android:fillColor="${shape.fillColor}"`;
       if (shape.fillOpacity !== 1) pAttrs += `\n${pindent}    android:fillAlpha="${fmtAttr(shape.fillOpacity)}"`;
       if (shape.fillType === 'evenOdd') pAttrs += `\n${pindent}    android:fillType="evenOdd"`;
     }
     if (shape.strokeEnabled){
-      pAttrs += `\n${pindent}    android:strokeColor="${shape.strokeColor}"`;
+      if (strokeGradient) gradientChildren.push(...gradientXmlLines(strokeGradient, paintBox, 'strokeColor', pindent + '    '));
+      else pAttrs += `\n${pindent}    android:strokeColor="${shape.strokeColor}"`;
       pAttrs += `\n${pindent}    android:strokeWidth="${fmtAttr(shape.strokeWidth)}"`;
       if (shape.strokeOpacity !== 1) pAttrs += `\n${pindent}    android:strokeAlpha="${fmtAttr(shape.strokeOpacity)}"`;
       if (shape.strokeLineCap !== 'butt') pAttrs += `\n${pindent}    android:strokeLineCap="${shape.strokeLineCap}"`;
       if (shape.strokeLineJoin !== 'miter') pAttrs += `\n${pindent}    android:strokeLineJoin="${shape.strokeLineJoin}"`;
       if (shape.strokeLineJoin === 'miter' && shape.strokeMiterLimit !== 4) pAttrs += `\n${pindent}    android:strokeMiterLimit="${fmtAttr(shape.strokeMiterLimit)}"`;
     }
-    lines.push(`${pindent}<path ${pAttrs}/>`);
+    if (gradientChildren.length){
+      lines.push(`${pindent}<path ${pAttrs}>`);
+      lines.push(...gradientChildren);
+      lines.push(`${pindent}</path>`);
+    } else {
+      lines.push(`${pindent}<path ${pAttrs}/>`);
+    }
     if (hasGroup) lines.push(`${indent}</group>`);
   }
   lines.push('</vector>');
@@ -6116,8 +6777,65 @@ function syntaxHighlightXml(xml){
   return out;
 }
 const ANDROID_NS = 'http://schemas.android.com/apk/res/android';
+const AAPT_NS = 'http://schemas.android.com/aapt';
 function androidXmlAttr(el, name){
   return el.getAttributeNS(ANDROID_NS, name) || el.getAttribute('android:' + name) || '';
+}
+/* Finds the <gradient> nested under <aapt:attr name="android:fillColor"> (or strokeColor)
+   and converts it back into the normalized model. The inverse of gradientXmlLines(). */
+function parseAaptGradient(pathEl, attrName, bbox){
+  let gradientEl = null;
+  for (const child of Array.from(pathEl.children)){
+    if (child.localName !== 'attr') continue;
+    const name = child.getAttributeNS(AAPT_NS, 'name') || child.getAttribute('name') || child.getAttribute('aapt:name') || '';
+    if (name !== 'android:' + attrName && name !== attrName) continue;
+    gradientEl = Array.from(child.children).find(n => n.localName === 'gradient') || null;
+    break;
+  }
+  if (!gradientEl) return null;
+  const type = (androidXmlAttr(gradientEl, 'type') || 'linear').toLowerCase();
+  const g = makeGradient(GRADIENT_TYPES.indexOf(type) >= 0 ? type : 'linear');
+  const w = Math.max(bbox.width, 1e-4), h = Math.max(bbox.height, 1e-4);
+  const num = (name) => { const v = parseXmlNumber(androidXmlAttr(gradientEl, name)); return isFinite(v) ? v : null; };
+
+  if (g.type === 'linear'){
+    const sx = num('startX'), sy = num('startY'), ex = num('endX'), ey = num('endY');
+    if (sx != null && sy != null && ex != null && ey != null){
+      const dx = ex - sx, dy = ey - sy;
+      // Recover the authored angle from the endpoints; the magnitude is implied by the box.
+      if (Math.abs(dx) > 1e-9 || Math.abs(dy) > 1e-9){
+        g.angle = ((Math.atan2(dy, dx) * 180 / Math.PI) % 360 + 360) % 360;
+      }
+    }
+  } else {
+    const cx = num('centerX'), cy = num('centerY');
+    if (cx != null) g.cx = clamp((cx - bbox.x) / w, -1, 2);
+    if (cy != null) g.cy = clamp((cy - bbox.y) / h, -1, 2);
+    const r = num('gradientRadius');
+    if (r != null) g.radius = clamp(r / Math.max(w, h), 0.01, 3);
+  }
+  const tile = (androidXmlAttr(gradientEl, 'tileMode') || 'clamp').toLowerCase();
+  if (TILE_MODES.indexOf(tile) >= 0) g.tileMode = tile;
+
+  const items = Array.from(gradientEl.children).filter(n => n.localName === 'item');
+  const stops = [];
+  for (const item of items){
+    const parsed = parseAndroidColor(androidXmlAttr(item, 'color'));
+    if (!parsed) continue;
+    const offset = parseXmlNumber(androidXmlAttr(item, 'offset'));
+    stops.push(makeGradientStop(isFinite(offset) ? offset : stops.length, parsed.hex, parsed.opacity));
+  }
+  // Android also accepts the shorthand start/center/end color trio instead of <item>s.
+  if (stops.length < 2){
+    const trio = [['startColor', 0], ['centerColor', 0.5], ['endColor', 1]];
+    for (const [attr, offset] of trio){
+      const parsed = parseAndroidColor(androidXmlAttr(gradientEl, attr));
+      if (parsed) stops.push(makeGradientStop(offset, parsed.hex, parsed.opacity));
+    }
+  }
+  if (stops.length < 2) return null;
+  g.stops = stops.slice(0, MAX_GRADIENT_STOPS);
+  return sortGradientStops(g);
 }
 function parseXmlNumber(value, suffix){
   const text = String(value || '').trim();
@@ -6170,12 +6888,19 @@ function parseEditedAndroidXml(xml){
       shape.translateX = desiredPivot.x - localPivot.x;
       shape.translateY = desiredPivot.y - localPivot.y;
       shape.name = sanitizeResourceName(androidXmlAttr(child, 'name') || 'path');
-      shape.fillEnabled = androidXmlAttr(child, 'fillColor') !== 'none';
-      shape.fillColor = androidXmlAttr(child, 'fillColor') || '#000000';
+      const localBox = { x:bbox.x, y:bbox.y, width:Math.max(bbox.width, 1e-3), height:Math.max(bbox.height, 1e-3) };
+      const fillGradient = parseAaptGradient(child, 'fillColor', localBox);
+      const strokeGradient = parseAaptGradient(child, 'strokeColor', localBox);
+      shape.fillEnabled = fillGradient ? true : androidXmlAttr(child, 'fillColor') !== 'none';
+      shape.fillColor = androidXmlAttr(child, 'fillColor') || (fillGradient ? fillGradient.stops[0].color : '#000000');
       shape.fillOpacity = parseXmlNumber(androidXmlAttr(child, 'fillAlpha')) || 1;
       shape.fillType = androidXmlAttr(child, 'fillType') === 'evenOdd' ? 'evenOdd' : 'nonZero';
-      shape.strokeEnabled = !!androidXmlAttr(child, 'strokeColor') && androidXmlAttr(child, 'strokeColor') !== 'none';
-      shape.strokeColor = androidXmlAttr(child, 'strokeColor') || '#000000';
+      shape.fillPaint = fillGradient ? 'gradient' : 'solid';
+      shape.fillGradient = fillGradient;
+      shape.strokeEnabled = strokeGradient ? true : (!!androidXmlAttr(child, 'strokeColor') && androidXmlAttr(child, 'strokeColor') !== 'none');
+      shape.strokeColor = androidXmlAttr(child, 'strokeColor') || (strokeGradient ? strokeGradient.stops[0].color : '#000000');
+      shape.strokePaint = strokeGradient ? 'gradient' : 'solid';
+      shape.strokeGradient = strokeGradient;
       shape.strokeWidth = parseXmlNumber(androidXmlAttr(child, 'strokeWidth')) || 1;
       shape.strokeOpacity = parseXmlNumber(androidXmlAttr(child, 'strokeAlpha')) || 1;
       shape.strokeLineCap = androidXmlAttr(child, 'strokeLineCap') || 'butt';
@@ -6374,9 +7099,33 @@ function readProjects(){
 }
 function writeProjects(projects){ localStorage.setItem(PROJECTS_KEY, JSON.stringify(projects)); }
 function projectPreviewSvg(project){
-  const svg = svgEl('svg', { viewBox:`0 0 ${project.doc.viewportWidth} ${project.doc.viewportHeight}` });
-  svg.style.opacity = project.doc.alpha == null ? 1 : project.doc.alpha;
-  for (const shape of project.shapes || []) if (shape.visible) svg.appendChild(buildShapeVisualGroup(shape));
+  const d = project.doc || {};
+  const vw = d.viewportWidth || 24, vh = d.viewportHeight || 24;
+  const svg = svgEl('svg', { viewBox:`0 0 ${vw} ${vh}` });
+  svg.style.opacity = d.alpha == null ? 1 : d.alpha;
+
+  // Clip to the artboard so shapes parked in the bleed area don't spill across the card —
+  // this matters much more now that a background can be painted behind them.
+  const clipId = 'dwPreviewClip-' + Math.random().toString(36).slice(2, 9);
+  const defs = svgEl('defs');
+  const clip = svgEl('clipPath', { id: clipId });
+  clip.appendChild(svgEl('rect', { x:0, y:0, width:vw, height:vh }));
+  defs.appendChild(clip);
+  svg.appendChild(defs);
+
+  const content = svgEl('g', { 'clip-path': `url(#${clipId})` });
+  // The background layer is part of how the icon looks, so the preview shows it whenever
+  // it's switched on — independent of whether it's set to be included in the XML export.
+  if (d.backgroundEnabled){
+    content.appendChild(svgEl('rect', {
+      x:0, y:0, width:vw, height:vh,
+      fill: d.backgroundColor || '#1E222B',
+      opacity: d.backgroundOpacity != null ? d.backgroundOpacity : 1,
+    }));
+    svg.classList.add('has-bg');
+  }
+  for (const shape of project.shapes || []) if (shape.visible) content.appendChild(buildShapeVisualGroup(shape));
+  svg.appendChild(content);
   return svg;
 }
 function projectXml(project){
@@ -6397,32 +7146,236 @@ function projectActionIcon(type){
   };
   return `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">${icons[type]}</svg>`;
 }
+/* ---------------- project quick view ----------------
+   One modal with two faces: a zoomable render, and the generated XML with line numbers.
+   The two never coexist — switching tears the other one down — so there's only ever one
+   copy of the icon on screen and the zoom state can't get out of sync with what's shown. */
+const QUICKVIEW_ZOOM_MIN = 0.25;
+const QUICKVIEW_ZOOM_MAX = 8;
+const QUICKVIEW_ZOOM_STEP = 1.25;
+
+function renameProject(id, nextName){
+  const clean = String(nextName || '').trim();
+  if (!clean) return false;
+  const projects = readProjects();
+  const project = projects.find(item => item.id === id);
+  if (!project || project.name === clean) return false;
+  project.name = clean;
+  project.updatedAt = Date.now();
+  writeProjects(projects);
+  // Keep the open editor in step if this is the project currently loaded.
+  if (state.projectId === id) state.projectName = clean;
+  renderHome();
+  return true;
+}
+
 function showProjectQuickView(project, showCode){
-  const xml = showCode ? projectXml(project) : '';
-  showModal({
-    title: project.name || 'Project preview',
-    body: '',
-    actions: [
-      ...(showCode ? [{ label:'Copy code', variant:'ghost', onClick:() => copyTextToClipboard(xml) }] : []),
-      { label:'Open project', variant:'primary', onClick:() => { closeModal(); openLocalProject(project.id); } },
-      { label:'Close', variant:'ghost', onClick:closeModal },
-    ]
-  });
+  // Always re-read: a rename or an edit may have landed since the card was built.
+  const current = readProjects().find(item => item.id === project.id) || project;
+  const shapes = current.shapes || [];
+  const layerCount = shapes.length;
+
+  DOM.modalTitle.textContent = showCode ? 'XML preview' : 'Icon preview';
   DOM.modalBody.className = 'modal-body project-quickview';
+  DOM.modalBody.innerHTML = '';
+  DOM.modalFoot.innerHTML = '';
+  DOM.modalBackdrop.classList.add('show');
+  DOM.modalBackdrop.classList.add('quickview-open');
+
+  /* ---- rename row (shared by both views) ---- */
+  const renameRow = document.createElement('div');
+  renameRow.className = 'quickview-rename';
+  const nameInput = document.createElement('input');
+  nameInput.type = 'text';
+  nameInput.className = 'modal-input quickview-name-input';
+  nameInput.value = current.name || 'Untitled icon';
+  nameInput.maxLength = 80;
+  nameInput.spellcheck = false;
+  nameInput.setAttribute('aria-label', 'Icon name');
+  const saveName = document.createElement('button');
+  saveName.type = 'button';
+  saveName.className = 'btn small primary';
+  saveName.textContent = 'Rename';
+  const commitRename = () => {
+    const next = nameInput.value.trim();
+    if (!next){
+      nameInput.value = current.name || 'Untitled icon';
+      showToast('An icon needs a name');
+      return;
+    }
+    if (renameProject(current.id, next)){
+      current.name = next;
+      showToast('Renamed to ' + next);
+    }
+  };
+  saveName.addEventListener('click', commitRename);
+  nameInput.addEventListener('keydown', (e) => {
+    if (e.key === 'Enter'){ e.preventDefault(); commitRename(); }
+    if (e.key === 'Escape'){ nameInput.value = current.name || 'Untitled icon'; nameInput.blur(); }
+  });
+  renameRow.append(nameInput, saveName);
+  DOM.modalBody.appendChild(renameRow);
+
+  if (showCode) buildQuickViewCode(current, layerCount);
+  else buildQuickViewRender(current, layerCount);
+
+  /* ---- footer: the view toggle lives here so it reads as a mode switch ---- */
+  const swap = document.createElement('button');
+  swap.className = 'btn ghost';
+  swap.textContent = showCode ? 'View render' : 'View code';
+  swap.addEventListener('click', () => showProjectQuickView(current, !showCode));
+
+  const open = document.createElement('button');
+  open.className = 'btn primary';
+  open.textContent = 'Open project';
+  open.addEventListener('click', () => { closeQuickView(); openLocalProject(current.id); });
+
+  const close = document.createElement('button');
+  close.className = 'btn ghost';
+  close.textContent = 'Close';
+  close.addEventListener('click', closeQuickView);
+
   if (showCode){
-    const pre = document.createElement('pre');
-    pre.innerHTML = syntaxHighlightXml(xml);
-    DOM.modalBody.appendChild(pre);
-  } else {
-    const preview = document.createElement('div');
-    preview.className = 'quickview-preview';
-    preview.appendChild(projectPreviewSvg(project));
-    DOM.modalBody.appendChild(preview);
-    const meta = document.createElement('div');
-    meta.className = 'quickview-meta';
-    meta.textContent = `${(project.shapes || []).length} layer${(project.shapes || []).length === 1 ? '' : 's'} · ${fmtAttr(project.doc.viewportWidth)} × ${fmtAttr(project.doc.viewportHeight)} viewport`;
-    DOM.modalBody.appendChild(meta);
+    const copy = document.createElement('button');
+    copy.className = 'btn ghost';
+    copy.textContent = 'Copy XML';
+    copy.addEventListener('click', () => copyTextToClipboard(projectXml(current)));
+    DOM.modalFoot.appendChild(copy);
   }
+  DOM.modalFoot.append(swap, open, close);
+}
+function closeQuickView(){
+  resetModalWidthVariants();
+  closeModal();
+}
+
+/* Zoomable render view. Zoom is applied as a CSS transform on a wrapper rather than by
+   resizing the SVG, so it stays crisp at any scale and panning is a cheap translate. */
+function buildQuickViewRender(project, layerCount){
+  const stage = document.createElement('div');
+  stage.className = 'quickview-preview';
+  stage.tabIndex = 0;
+  const canvas = document.createElement('div');
+  canvas.className = 'quickview-canvas';
+  canvas.appendChild(projectPreviewSvg(project));
+  stage.appendChild(canvas);
+
+  const view = { zoom: 1, x: 0, y: 0 };
+  const label = document.createElement('span');
+  label.className = 'quickview-zoom-label';
+
+  const apply = () => {
+    canvas.style.transform = `translate(${view.x}px, ${view.y}px) scale(${view.zoom})`;
+    label.textContent = Math.round(view.zoom * 100) + '%';
+    stage.classList.toggle('pannable', view.zoom > 1);
+  };
+  const setZoom = (next, originX, originY) => {
+    const clamped = clamp(next, QUICKVIEW_ZOOM_MIN, QUICKVIEW_ZOOM_MAX);
+    if (originX == null){
+      view.zoom = clamped;
+    } else {
+      // Keep the point under the cursor fixed while the scale changes.
+      const ratio = clamped / view.zoom;
+      view.x = originX - (originX - view.x) * ratio;
+      view.y = originY - (originY - view.y) * ratio;
+      view.zoom = clamped;
+    }
+    if (view.zoom <= 1){ view.x = 0; view.y = 0; }
+    apply();
+  };
+
+  const controls = document.createElement('div');
+  controls.className = 'quickview-controls';
+  const mkBtn = (label2, title, onClick) => {
+    const b = document.createElement('button');
+    b.type = 'button';
+    b.className = 'quickview-ctrl';
+    b.innerHTML = label2;
+    b.title = title;
+    b.setAttribute('aria-label', title);
+    b.addEventListener('click', onClick);
+    return b;
+  };
+  const zoomIcon = (inner) => `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/>${inner}</svg>`;
+  controls.append(
+    mkBtn(zoomIcon('<path d="M8 11h6"/>'), 'Zoom out', () => setZoom(view.zoom / QUICKVIEW_ZOOM_STEP)),
+    label,
+    mkBtn(zoomIcon('<path d="M11 8v6M8 11h6"/>'), 'Zoom in', () => setZoom(view.zoom * QUICKVIEW_ZOOM_STEP)),
+    mkBtn('<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12a9 9 0 1 0 3-6.7"/><path d="M3 3v5h5"/></svg>', 'Reset zoom', () => { view.zoom = 1; view.x = 0; view.y = 0; apply(); })
+  );
+
+  stage.addEventListener('wheel', (e) => {
+    e.preventDefault();
+    const rect = stage.getBoundingClientRect();
+    const ox = e.clientX - rect.left - rect.width / 2;
+    const oy = e.clientY - rect.top - rect.height / 2;
+    setZoom(view.zoom * (e.deltaY < 0 ? QUICKVIEW_ZOOM_STEP : 1 / QUICKVIEW_ZOOM_STEP), ox, oy);
+  }, { passive: false });
+
+  // Double-click toggles between fit and a 2x look, the way image viewers behave.
+  stage.addEventListener('dblclick', () => setZoom(view.zoom > 1 ? 1 : 2));
+
+  stage.addEventListener('pointerdown', (e) => {
+    if (view.zoom <= 1 || e.button !== 0) return;
+    e.preventDefault();
+    const startX = e.clientX - view.x, startY = e.clientY - view.y;
+    stage.setPointerCapture(e.pointerId);
+    stage.classList.add('panning');
+    const onMove = (ev) => { view.x = ev.clientX - startX; view.y = ev.clientY - startY; apply(); };
+    const onUp = () => {
+      stage.classList.remove('panning');
+      stage.removeEventListener('pointermove', onMove);
+      stage.removeEventListener('pointerup', onUp);
+      stage.removeEventListener('pointercancel', onUp);
+    };
+    stage.addEventListener('pointermove', onMove);
+    stage.addEventListener('pointerup', onUp);
+    stage.addEventListener('pointercancel', onUp);
+  });
+
+  stage.addEventListener('keydown', (e) => {
+    if (e.key === '+' || e.key === '='){ e.preventDefault(); setZoom(view.zoom * QUICKVIEW_ZOOM_STEP); }
+    else if (e.key === '-'){ e.preventDefault(); setZoom(view.zoom / QUICKVIEW_ZOOM_STEP); }
+    else if (e.key === '0'){ e.preventDefault(); view.zoom = 1; view.x = 0; view.y = 0; apply(); }
+  });
+
+  apply();
+  DOM.modalBody.append(stage, controls);
+
+  const meta = document.createElement('div');
+  meta.className = 'quickview-meta';
+  meta.textContent = `${layerCount} layer${layerCount === 1 ? '' : 's'} · ${fmtAttr(project.doc.viewportWidth)} × ${fmtAttr(project.doc.viewportHeight)} viewport · scroll or use + / − to zoom`;
+  DOM.modalBody.appendChild(meta);
+}
+
+/* Code view with a line-number gutter. The gutter is a sibling of the code rather than
+   part of it so line numbers never end up in a copied selection. */
+function buildQuickViewCode(project, layerCount){
+  const xml = projectXml(project);
+  const lines = xml.split('\n');
+
+  const wrap = document.createElement('div');
+  wrap.className = 'quickview-code';
+
+  const gutter = document.createElement('div');
+  gutter.className = 'quickview-gutter';
+  gutter.setAttribute('aria-hidden', 'true');
+  gutter.textContent = lines.map((_, i) => i + 1).join('\n');
+
+  const pre = document.createElement('pre');
+  pre.innerHTML = syntaxHighlightXml(xml);
+
+  // Keep the numbers aligned with the code when the code panel scrolls.
+  pre.addEventListener('scroll', () => { gutter.scrollTop = pre.scrollTop; });
+
+  wrap.append(gutter, pre);
+  DOM.modalBody.appendChild(wrap);
+
+  const meta = document.createElement('div');
+  meta.className = 'quickview-meta';
+  const bytes = new Blob([xml]).size;
+  meta.textContent = `${lines.length} line${lines.length === 1 ? '' : 's'} · ${layerCount} layer${layerCount === 1 ? '' : 's'} · ${formatBytes(bytes)}`;
+  DOM.modalBody.appendChild(meta);
 }
 function deleteProject(id){
   const project = readProjects().find(item => item.id === id);
@@ -6552,24 +7505,149 @@ function renderHome(){
 }
 /* ---------------- mobile block: the vector editor needs a real cursor + a decent
    viewport for precise node/handle work, so it's intentionally desktop-only for now ---------------- */
+/* The physical screen's shorter edge, in CSS px. Unlike innerWidth this doesn't move when
+   a browser is put into "Desktop site" mode — that toggle changes the layout viewport, not
+   the screen object — which is what makes it a reliable phone signal. The threshold sits
+   well below ordinary laptop screens (even a cheap 1366×768 laptop has a 768px edge) and
+   comfortably above real phones (which top out under ~500px on their narrow edge, even the
+   large ones — iPhone 14 Pro Max is 430, Pixel 8 Pro is 412). Tablets land above this too
+   and are intentionally let through, matching how the check behaved before this pass. */
+function physicalScreenMin(){
+  const sw = (window.screen && screen.width) || window.innerWidth;
+  const sh = (window.screen && screen.height) || window.innerHeight;
+  return Math.min(sw, sh);
+}
+function hasCoarsePointer(){
+  if ((navigator.maxTouchPoints || 0) > 1) return true;
+  return window.matchMedia ? window.matchMedia('(pointer: coarse)').matches : false;
+}
+/* Windows, macOS or desktop Linux is enough on its own — skips the touch/screen-size
+   checks below entirely, so window size never matters on a real desktop OS. "X11" is the
+   check for Linux rather than the literal word "Linux", because Android's user agent also
+   contains "Linux" (it's Linux-based); X11 is the windowing system desktop Linux browsers
+   report and Android never does.
+   Trade-off: a phone's "Desktop site" mode rewrites the UA to look exactly like one of
+   these, on purpose — so a spoofed phone passes this check too. Given the choice between
+   occasionally missing a phone in desktop mode and ever blocking a real desktop user,
+   this errs toward the latter. */
+function isDesktopOS(){
+  return /Windows NT|Macintosh|X11/i.test(navigator.userAgent);
+}
 function isMobileDevice(){
-  const uaMobile = /Android|iPhone|iPad|iPod|Mobile|Windows Phone|BlackBerry|IEMobile/i.test(navigator.userAgent);
-  if (uaMobile) return true;
-  const narrowViewport = Math.min(window.innerWidth, window.innerHeight) < 760;
-  const coarsePointer = window.matchMedia ? window.matchMedia('(pointer: coarse)').matches : false;
-  return narrowViewport && coarsePointer;
+  if (/Android|iPhone|iPad|iPod|Mobile|Windows Phone|BlackBerry|IEMobile/i.test(navigator.userAgent)) return true;
+  if (isDesktopOS()) return false;
+  // "Desktop site" mode hands out a desktop user-agent and a wide layout viewport, so
+  // neither of those can be trusted on its own — but a touchscreen laptop shouldn't be
+  // caught by what's left either, hence the low, phone-specific threshold below.
+  if (!hasCoarsePointer()) return false;
+  if (physicalScreenMin() < 500) return true;
+  // Fallback for a touch device with an unusually small browser window.
+  return Math.min(window.innerWidth, window.innerHeight) < 760;
 }
 function checkMobileEditorBlock(){
   if (!DOM.mobileBlockOverlay) return;
   const inEditor = !document.body.classList.contains('home-visible');
   const blocked = inEditor && isMobileDevice();
   DOM.mobileBlockOverlay.classList.toggle('show', blocked);
+  // Stop the editor scrolling underneath the overlay while it's up.
+  document.body.classList.toggle('mobile-blocked', blocked);
 }
+
+/* ---------------- custom number steppers ----------------
+   Every type=number input across the app — doc settings, shape geometry, gradient
+   controls — gets a matching pair of up/down buttons instead of the browser's native
+   spinner. Rather than editing each template that builds one of these inputs, a
+   MutationObserver wraps them generically the moment they land in the DOM, so panels
+   that get rebuilt wholesale via innerHTML (which is most of them here) are covered
+   automatically and stay covered as new fields are added later. */
+function stepDecimalPlaces(step){
+  const s = String(step);
+  const i = s.indexOf('.');
+  return i < 0 ? 0 : s.length - i - 1;
+}
+function fireInputAndChange(input){
+  input.dispatchEvent(new Event('input', { bubbles: true }));
+  input.dispatchEvent(new Event('change', { bubbles: true }));
+}
+function stepNumberInput(input, dir){
+  if (input.disabled || input.readOnly) return;
+  const step = parseFloat(input.step) || 1;
+  const min = input.min !== '' ? parseFloat(input.min) : -Infinity;
+  const max = input.max !== '' ? parseFloat(input.max) : Infinity;
+  const base = parseFloat(input.value);
+  let next = clamp((isNaN(base) ? 0 : base) + dir * step, min, max);
+  const places = stepDecimalPlaces(step);
+  const scale = Math.pow(10, places);
+  next = Math.round(next * scale) / scale;
+  input.value = places > 0 ? next.toFixed(places) : String(next);
+  fireInputAndChange(input);
+}
+function stepperArrowSvg(dir){
+  const path = dir > 0 ? 'M1 4l4-4 4 4' : 'M1 1l4 4 4-4';
+  return `<svg viewBox="0 0 10 6" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="${path}"/></svg>`;
+}
+function wrapNumberInput(input){
+  if (!input || input.dataset.stepped === '1' || input.dataset.noStepper === '1') return;
+  input.dataset.stepped = '1'; // set before moving the node so the observer doesn't re-visit it
+  const wrap = document.createElement('span');
+  wrap.className = 'num-stepper';
+  input.parentNode.insertBefore(wrap, input);
+  wrap.appendChild(input);
+  const btns = document.createElement('span');
+  btns.className = 'num-stepper-btns';
+  btns.innerHTML = `<button type="button" class="num-stepper-btn up" tabindex="-1" aria-label="Increase">${stepperArrowSvg(1)}</button><button type="button" class="num-stepper-btn down" tabindex="-1" aria-label="Decrease">${stepperArrowSvg(-1)}</button>`;
+  wrap.appendChild(btns);
+  const up = btns.querySelector('.up'), down = btns.querySelector('.down');
+  let holdDelay = null, holdInterval = null;
+  const stop = () => { clearTimeout(holdDelay); clearInterval(holdInterval); };
+  const start = (dir) => {
+    stop();
+    stepNumberInput(input, dir);
+    // A short delay before repeat kicks in, same shape as a scrollbar's autorepeat, so a
+    // quick tap doesn't accidentally fire twice.
+    holdDelay = setTimeout(() => { holdInterval = setInterval(() => stepNumberInput(input, dir), 70); }, 380);
+  };
+  up.addEventListener('pointerdown', (e) => { e.preventDefault(); start(1); });
+  down.addEventListener('pointerdown', (e) => { e.preventDefault(); start(-1); });
+  ['pointerup', 'pointerleave', 'pointercancel'].forEach(evt => {
+    up.addEventListener(evt, stop);
+    down.addEventListener(evt, stop);
+  });
+}
+function enhanceNumberInputs(root){
+  if (!root) return;
+  const scope = root.querySelectorAll ? root : document;
+  scope.querySelectorAll('input[type="number"]:not([data-stepped="1"])').forEach(wrapNumberInput);
+}
+function initNumberSteppers(){
+  // Scoped to the panels that actually hold number inputs — not document.body — so the
+  // observer stays quiet while the canvas re-renders continuously during a drag.
+  const roots = [document.getElementById('tab-design'), DOM.modalBody].filter(Boolean);
+  roots.forEach(enhanceNumberInputs);
+  if (!roots.length || typeof MutationObserver === 'undefined') return;
+  const observer = new MutationObserver((mutations) => {
+    for (const m of mutations){
+      m.addedNodes.forEach(node => {
+        if (node.nodeType !== 1) return;
+        if (node.matches && node.matches('input[type="number"]')) wrapNumberInput(node);
+        else if (node.querySelectorAll) enhanceNumberInputs(node);
+      });
+    }
+  });
+  roots.forEach(root => observer.observe(root, { childList: true, subtree: true }));
+}
+
 function wireMobileBlock(){
   if (!DOM.mobileBlockOverlay) return;
   const homeBtn = document.getElementById('mobileBlockHomeBtn');
   if (homeBtn) homeBtn.addEventListener('click', () => { showHome(); checkMobileEditorBlock(); });
   window.addEventListener('resize', checkMobileEditorBlock);
+  window.addEventListener('orientationchange', checkMobileEditorBlock);
+  // Toggling desktop mode re-lays-out the page without always firing a window resize,
+  // so watch the visual viewport too.
+  if (window.visualViewport && window.visualViewport.addEventListener){
+    window.visualViewport.addEventListener('resize', checkMobileEditorBlock);
+  }
   if (window.matchMedia){
     const mq = window.matchMedia('(pointer: coarse)');
     if (mq.addEventListener) mq.addEventListener('change', checkMobileEditorBlock);
@@ -6850,6 +7928,7 @@ function wireHome(){
   DOM.homeNewProject.addEventListener('click', createProjectFlow);
   DOM.homeImportProject.addEventListener('click', () => document.getElementById('fileImportSvg').click());
   if (DOM.homeInfoBtn) DOM.homeInfoBtn.addEventListener('click', showAboutModal);
+  if (DOM.homeChangelogBtn) DOM.homeChangelogBtn.addEventListener('click', showChangelogModal);
   DOM.emptyNewProject.addEventListener('click', createProjectFlow);
   DOM.emptyImportProject.addEventListener('click', () => document.getElementById('fileImportSvg').click());
   DOM.homeSearchInput.addEventListener('input', () => { homeState.query = DOM.homeSearchInput.value; renderHome(); });
@@ -6918,6 +7997,91 @@ function resolveCssColor(raw){
     return { hex, alpha };
   }catch(e){ return null; }
 }
+/* ---- SVG gradient import ----
+   Imported SVGs reference their gradients by id (fill="url(#grad1)"), so before walking
+   the tree we index every <linearGradient>/<radialGradient> in the document, resolve
+   xlink:href inheritance, and convert each into the normalized model. */
+let __svgGradientDefs = {};
+function collectSvgGradientDefs(root){
+  __svgGradientDefs = {};
+  const nodes = root.querySelectorAll('linearGradient, radialGradient');
+  const byId = {};
+  nodes.forEach(node => { if (node.id) byId[node.id] = node; });
+
+  // A gradient can inherit stops and geometry from another via href — follow the chain.
+  function resolveAttr(node, name, seen){
+    if (!node || seen.has(node)) return null;
+    seen.add(node);
+    const own = node.getAttribute(name);
+    if (own != null) return own;
+    const href = node.getAttribute('href') || node.getAttributeNS('http://www.w3.org/1999/xlink', 'href') || '';
+    const parent = href.startsWith('#') ? byId[href.slice(1)] : null;
+    return parent ? resolveAttr(parent, name, seen) : null;
+  }
+  function resolveStops(node, seen){
+    if (!node || seen.has(node)) return [];
+    seen.add(node);
+    const own = Array.from(node.children).filter(n => n.tagName && n.tagName.toLowerCase() === 'stop');
+    if (own.length) return own;
+    const href = node.getAttribute('href') || node.getAttributeNS('http://www.w3.org/1999/xlink', 'href') || '';
+    const parent = href.startsWith('#') ? byId[href.slice(1)] : null;
+    return parent ? resolveStops(parent, seen) : [];
+  }
+
+  nodes.forEach(node => {
+    if (!node.id) return;
+    const isRadial = node.tagName.toLowerCase() === 'radialgradient';
+    const g = makeGradient(isRadial ? 'radial' : 'linear');
+    const stopEls = resolveStops(node, new Set());
+    const stops = [];
+    stopEls.forEach((stopEl, idx) => {
+      const style = parseStylePairs(stopEl.getAttribute('style'));
+      const rawColor = style['stop-color'] || stopEl.getAttribute('stop-color') || '#000000';
+      const resolved = resolveCssColor(rawColor);
+      const rawOffset = stopEl.getAttribute('offset') || String(idx / Math.max(1, stopEls.length - 1));
+      // offset accepts both 0..1 and percentages
+      const offset = rawOffset.trim().endsWith('%') ? parseFloat(rawOffset) / 100 : parseFloat(rawOffset);
+      const rawOpacity = style['stop-opacity'] != null ? style['stop-opacity'] : stopEl.getAttribute('stop-opacity');
+      let opacity = rawOpacity != null && !isNaN(parseFloat(rawOpacity)) ? clamp(parseFloat(rawOpacity), 0, 1) : 1;
+      if (resolved && resolved.alpha < 1) opacity *= resolved.alpha;
+      stops.push(makeGradientStop(isFinite(offset) ? offset : 0, resolved ? resolved.hex : '#000000', opacity));
+    });
+    if (stops.length < 2) return;
+    g.stops = stops.slice(0, MAX_GRADIENT_STOPS);
+
+    const seen = new Set();
+    const spread = resolveAttr(node, 'spreadMethod', new Set());
+    if (spread && SPREAD_TO_TILE[spread]) g.tileMode = SPREAD_TO_TILE[spread];
+    // Geometry defaults are objectBoundingBox fractions, which is exactly how the model
+    // stores them; userSpaceOnUse coordinates can't be mapped without a shape to measure
+    // against, so those fall back to the sensible full-box defaults.
+    const units = resolveAttr(node, 'gradientUnits', new Set()) || 'objectBoundingBox';
+    const frac = (name, fallback) => {
+      const raw = resolveAttr(node, name, new Set(seen));
+      if (raw == null) return fallback;
+      const v = raw.trim().endsWith('%') ? parseFloat(raw) / 100 : parseFloat(raw);
+      return isFinite(v) ? v : fallback;
+    };
+    if (units === 'objectBoundingBox'){
+      if (isRadial){
+        g.cx = clamp(frac('cx', 0.5), -1, 2);
+        g.cy = clamp(frac('cy', 0.5), -1, 2);
+        g.radius = clamp(frac('r', 0.5), 0.01, 3);
+      } else {
+        const x1 = frac('x1', 0), y1 = frac('y1', 0), x2 = frac('x2', 1), y2 = frac('y2', 0);
+        const dx = x2 - x1, dy = y2 - y1;
+        if (Math.abs(dx) > 1e-9 || Math.abs(dy) > 1e-9) g.angle = ((Math.atan2(dy, dx) * 180 / Math.PI) % 360 + 360) % 360;
+      }
+    }
+    __svgGradientDefs[node.id] = sortGradientStops(g);
+  });
+}
+function svgGradientFromPaint(raw){
+  const m = /^url\(\s*['"]?#([^)'"]+)['"]?\s*\)/.exec(String(raw || '').trim());
+  if (!m) return null;
+  const g = __svgGradientDefs[m[1]];
+  return g ? cloneGradient(g) : null;
+}
 function parseStylePairs(styleStr){
   const out = {};
   if (!styleStr) return out;
@@ -6937,17 +8101,25 @@ function applyStyleToShape(el, chainEls, shape){
   let fill = '#000000', fillOpacity = 1, hasFill = true;
   let stroke = null, strokeOpacity = 1, strokeWidth = 1;
   let fillRuleVal = 'nonzero';
+  let fillGradient = null, strokeGradient = null;
   for (const node of chainEls){
     const style = parseStylePairs(node.getAttribute('style'));
     const f = getEffectiveAttr(node, 'fill', style);
     if (f != null){
-      if (f === 'none') hasFill = false;
-      else { const c = resolveCssColor(f); if (c){ fill = c.hex; hasFill = true; if (c.alpha < 1) fillOpacity = c.alpha; } }
+      const grad = svgGradientFromPaint(f);
+      if (grad){ fillGradient = grad; hasFill = true; fill = grad.stops[0].color; }
+      else if (f === 'none') hasFill = false;
+      else { const c = resolveCssColor(f); if (c){ fill = c.hex; hasFill = true; fillGradient = null; if (c.alpha < 1) fillOpacity = c.alpha; } }
     }
     const fo = getEffectiveAttr(node, 'fill-opacity', style);
     if (fo != null && !isNaN(parseFloat(fo))) fillOpacity = clamp(parseFloat(fo),0,1);
     const s = getEffectiveAttr(node, 'stroke', style);
-    if (s != null){ if (s === 'none') stroke = null; else { const c = resolveCssColor(s); if (c){ stroke = c.hex; if (c.alpha<1) strokeOpacity = c.alpha; } } }
+    if (s != null){
+      const grad = svgGradientFromPaint(s);
+      if (grad){ strokeGradient = grad; stroke = grad.stops[0].color; }
+      else if (s === 'none'){ stroke = null; strokeGradient = null; }
+      else { const c = resolveCssColor(s); if (c){ stroke = c.hex; strokeGradient = null; if (c.alpha<1) strokeOpacity = c.alpha; } }
+    }
     const so = getEffectiveAttr(node, 'stroke-opacity', style);
     if (so != null && !isNaN(parseFloat(so))) strokeOpacity = clamp(parseFloat(so),0,1);
     const sw = getEffectiveAttr(node, 'stroke-width', style);
@@ -6959,7 +8131,11 @@ function applyStyleToShape(el, chainEls, shape){
   shape.fillColor = fill;
   shape.fillOpacity = fillOpacity;
   shape.fillType = fillRuleVal === 'evenodd' ? 'evenOdd' : 'nonZero';
+  shape.fillPaint = fillGradient ? 'gradient' : 'solid';
+  shape.fillGradient = fillGradient;
   shape.strokeEnabled = !!stroke;
+  shape.strokePaint = strokeGradient ? 'gradient' : 'solid';
+  shape.strokeGradient = strokeGradient;
   if (stroke){ shape.strokeColor = stroke; shape.strokeOpacity = strokeOpacity; shape.strokeWidth = strokeWidth; }
 }
 function roundedRectSvgPath(x,y,w,h,rx,ry){
@@ -7057,7 +8233,10 @@ function importSvgFile(file){
         if (hAttr>0) vpH = hAttr;
       }
       const newShapes = [];
+      // Index gradient defs first — shapes reference them by id while the tree is walked.
+      collectSvgGradientDefs(svgRoot);
       walkSvgNode(svgRoot, Mat2D.identity(), newShapes, []);
+      __svgGradientDefs = {};
       if (!newShapes.length){ showToast('No supported shapes found in that SVG'); return; }
 
       const fileName = file ? file.name : 'Imported SVG';
@@ -7167,7 +8346,15 @@ function showToast(msg){
   clearTimeout(__toastTimer);
   __toastTimer = setTimeout(() => DOM.toast.classList.remove('show'), 2600);
 }
+/* Some modals opt into a wider dialog (quick view, the welcome popup). Every modal-
+   opening function clears all such variants before applying its own, and closeModal()
+   clears them too — otherwise a stale width class could leak from whichever modal was
+   open last into the next, unrelated one. */
+function resetModalWidthVariants(){
+  DOM.modalBackdrop.classList.remove('quickview-open', 'welcome-open');
+}
 function showModal(opts){
+  resetModalWidthVariants();
   DOM.modalTitle.textContent = opts.title;
   DOM.modalBody.className = 'modal-body';
   DOM.modalBody.textContent = opts.body;
@@ -7181,9 +8368,15 @@ function showModal(opts){
   }
   DOM.modalBackdrop.classList.add('show');
 }
-function closeModal(){ DOM.modalBackdrop.classList.remove('show'); }
+function closeModal(){
+  DOM.modalBackdrop.classList.remove('show');
+  // Some modals widen the dialog; drop that opt-in so whatever opens next — "New
+  // project", About, any confirm — gets its normal width back.
+  resetModalWidthVariants();
+}
 
 function showAboutModal(){
+  resetModalWidthVariants();
   DOM.modalTitle.textContent = 'About Droidwright';
   DOM.modalBody.innerHTML = `
     <div class="about-modal-body">
@@ -7213,7 +8406,213 @@ function showAboutModal(){
   DOM.modalFoot.append(close);
   DOM.modalBackdrop.classList.add('show');
 }
+
+/* =====================================================================================
+   Changelog (GitHub releases)
+   Fetched live from the repo's own release history rather than hand-maintaining a
+   second copy of the changelog inside the app — this stays accurate on its own as new
+   versions ship. The last successful fetch is cached in localStorage so a temporary
+   GitHub outage still shows something instead of a dead end.
+   ===================================================================================== */
+const GITHUB_RELEASES_URL = 'https://api.github.com/repos/monomixs/Droidwright/releases';
+const CHANGELOG_CACHE_KEY = 'dw_changelog_cache_v1';
+
+function readChangelogCache(){
+  try {
+    const parsed = JSON.parse(localStorage.getItem(CHANGELOG_CACHE_KEY) || 'null');
+    return (parsed && Array.isArray(parsed.releases)) ? parsed : null;
+  } catch (e){ return null; }
+}
+function writeChangelogCache(releases){
+  try { localStorage.setItem(CHANGELOG_CACHE_KEY, JSON.stringify({ fetchedAt: Date.now(), releases })); }
+  catch (e){ /* private browsing, storage full, etc. — the cache is a nicety, not required */ }
+}
+function normalizeGithubRelease(r){
+  return {
+    tag: r.tag_name || '',
+    name: r.name || '',
+    publishedAt: r.published_at || r.created_at || null,
+    body: r.body || '',
+    url: r.html_url || '',
+    prerelease: !!r.prerelease,
+  };
+}
+function fetchGithubReleases(){
+  return fetch(GITHUB_RELEASES_URL, { headers: { Accept: 'application/vnd.github+json' } })
+    .then(r => { if (!r.ok) throw new Error('GitHub returned ' + r.status); return r.json(); })
+    .then(data => {
+      if (!Array.isArray(data)) throw new Error('Unexpected response from GitHub');
+      const releases = data.filter(r => !r.draft).map(normalizeGithubRelease)
+        .sort((a, b) => new Date(b.publishedAt || 0) - new Date(a.publishedAt || 0));
+      writeChangelogCache(releases);
+      return releases;
+    });
+}
+function formatReleaseDate(iso){
+  if (!iso) return '';
+  const d = new Date(iso);
+  return isNaN(d.getTime()) ? '' : d.toLocaleDateString(undefined, { year:'numeric', month:'short', day:'numeric' });
+}
+/* A small, hand-rolled subset of GitHub-flavored Markdown — headings, bold/italic/
+   strikethrough, inline and fenced code, links, blockquotes, horizontal rules, and both
+   list types. That covers what release notes actually use in practice, without pulling
+   in a full Markdown library for it. Everything is escaped first, and every pass after
+   that only ever wraps already-escaped text in tags this function controls — a release
+   body is untrusted external text, so nothing in it can inject raw HTML. */
+function renderReleaseMarkdown(md){
+  if (!md || !String(md).trim()) return '<p class="release-notes-empty">No release notes.</p>';
+  const codeBlocks = [];
+  // Fenced code blocks are pulled out before any inline-formatting pass touches the
+  // text, then spliced back in as <pre><code> at the very end.
+  let src = String(md).replace(/\r\n/g, '\n').replace(/```[a-zA-Z0-9]*\n?([\s\S]*?)```/g, (_, code) => {
+    codeBlocks.push(escapeHtml(code.replace(/\n$/, '')));
+    return '\u0000CODEBLOCK' + (codeBlocks.length - 1) + '\u0000';
+  });
+  src = escapeHtml(src);
+  src = src.replace(/^### (.*)$/gm, '<h4>$1</h4>');
+  src = src.replace(/^##\s?(.*)$/gm, '<h3>$1</h3>');
+  src = src.replace(/^#\s?(.*)$/gm, '<h3>$1</h3>');
+  src = src.replace(/^(?:-{3,}|\*{3,})$/gm, '<hr>');
+  src = src.replace(/^&gt; ?(.*)$/gm, '<blockquote>$1</blockquote>');
+  src = src.replace(/`([^`]+?)`/g, '<code>$1</code>');
+  src = src.replace(/\[([^\]]+)\]\((https?:\/\/[^\s)]+)\)/g, '<a href="$2" target="_blank" rel="noopener noreferrer">$1</a>');
+  src = src.replace(/\*\*([^*]+?)\*\*/g, '<strong>$1</strong>');
+  src = src.replace(/__([^_]+?)__/g, '<strong>$1</strong>');
+  src = src.replace(/~~([^~]+?)~~/g, '<del>$1</del>');
+  src = src.replace(/(^|[^*_\w])\*([^*\n]+?)\*(?!\*)/g, '$1<em>$2</em>');
+  src = src.replace(/(^|[^*_\w])_([^_\n]+?)_(?!_)/g, '$1<em>$2</em>');
+  // Group consecutive bullet/numbered lines into one <ul>/<ol>.
+  src = src.replace(/(^|\n)((?:[-*] .*(?:\n|$))+)/g, (m, lead, block) => {
+    const items = block.replace(/\n$/, '').split('\n').map(l => '<li>' + l.replace(/^[-*] /, '') + '</li>').join('');
+    return lead + '<ul>' + items + '</ul>';
+  });
+  src = src.replace(/(^|\n)((?:\d+\. .*(?:\n|$))+)/g, (m, lead, block) => {
+    const items = block.replace(/\n$/, '').split('\n').map(l => '<li>' + l.replace(/^\d+\. /, '') + '</li>').join('');
+    return lead + '<ol>' + items + '</ol>';
+  });
+  // Blank-line-separated blocks become paragraphs, unless already a block-level tag.
+  src = src.split(/\n{2,}/).map(block => {
+    const t = block.trim();
+    if (!t) return '';
+    if (/^<(h[1-6]|ul|ol|blockquote|hr)/.test(t)) return t;
+    return '<p>' + t.replace(/\n/g, '<br>') + '</p>';
+  }).join('');
+  src = src.replace(/\u0000CODEBLOCK(\d+)\u0000/g, (_, i) => '<pre><code>' + codeBlocks[+i] + '</code></pre>');
+  return src;
+}
+function renderChangelogList(releases, opts){
+  const container = document.getElementById('changelogList');
+  if (!container) return;
+  opts = opts || {};
+  if (!releases || !releases.length){
+    container.innerHTML = '<div class="fb-status">No published releases yet.</div>';
+    return;
+  }
+  const staleBanner = opts.stale
+    ? `<div class="changelog-stale-banner">Showing a cached copy from ${escapeHtml(formatReleaseDate(opts.cachedAt))} — GitHub couldn't be reached just now.</div>`
+    : '';
+  const itemsHtml = releases.map(r => {
+    const title = r.name && r.name.trim() && r.name.trim() !== r.tag ? `<span class="release-name">${escapeHtml(r.name)}</span>` : '';
+    return `
+      <div class="release-item">
+        <div class="release-head">
+          <span class="version-badge release-tag">${escapeHtml(r.tag || 'untagged')}</span>
+          ${r.prerelease ? '<span class="release-prerelease-tag">Pre-release</span>' : ''}
+          ${title}
+          <span class="release-date">${escapeHtml(formatReleaseDate(r.publishedAt))}</span>
+        </div>
+        <div class="release-notes">${renderReleaseMarkdown(r.body)}</div>
+        ${r.url ? `<a class="release-link" href="${escapeHtml(r.url)}" target="_blank" rel="noopener noreferrer">View on GitHub ↗</a>` : ''}
+      </div>`;
+  }).join('');
+  container.innerHTML = staleBanner + itemsHtml;
+}
+function loadAndRenderChangelog(){
+  fetchGithubReleases().then(releases => {
+    if (document.getElementById('changelogList')) renderChangelogList(releases, {});
+  }).catch(err => {
+    const container = document.getElementById('changelogList');
+    if (!container) return; // modal was closed (or reopened fresh) mid-fetch
+    const cached = readChangelogCache();
+    if (cached && cached.releases.length){
+      renderChangelogList(cached.releases, { stale:true, cachedAt: cached.fetchedAt });
+    } else {
+      container.innerHTML = `<div class="fb-status">Couldn't load the changelog (${escapeHtml(err.message)}).<br><button class="btn small" id="changelogRetry" type="button">Try again</button></div>`;
+      const retry = document.getElementById('changelogRetry');
+      if (retry) retry.addEventListener('click', () => {
+        container.innerHTML = '<div class="fb-status">Loading releases…</div>';
+        loadAndRenderChangelog();
+      });
+    }
+  });
+}
+function showChangelogModal(){
+  resetModalWidthVariants();
+  DOM.modalBackdrop.classList.add('changelog-open');
+  DOM.modalTitle.textContent = 'Changelog';
+  DOM.modalBody.innerHTML = '<div class="changelog-modal-body" id="changelogList"><div class="fb-status">Loading releases…</div></div>';
+  DOM.modalFoot.innerHTML = '';
+  const close = document.createElement('button');
+  close.className = 'btn primary';
+  close.textContent = 'Close';
+  close.addEventListener('click', closeModal);
+  DOM.modalFoot.appendChild(close);
+  DOM.modalBackdrop.classList.add('show');
+  loadAndRenderChangelog();
+}
+
+/* The home screen's hero used to show this — headline, subtitle, and the keyline
+   illustration — inline, above the project grid, on every single visit. Now it only
+   appears once, as a dismissible welcome popup, so a returning user sees their own
+   projects immediately instead of scrolling past an intro they've already read. The
+   flag is set the moment the popup is shown (not when it's explicitly dismissed), so
+   closing it by clicking the backdrop counts the same as clicking "Got it" — either way,
+   it's been seen. */
+const WELCOME_SEEN_KEY = 'dw_welcome_seen_v1';
+function showWelcomeModal(){
+  resetModalWidthVariants();
+  DOM.modalBackdrop.classList.add('welcome-open');
+  DOM.modalTitle.textContent = 'Welcome';
+  DOM.modalBody.innerHTML = `
+    <div class="welcome-modal-body">
+      <div class="welcome-modal-text">
+        <p class="eyebrow">Local workspace · no account needed</p>
+        <h2>Your icons, precisely drawn.</h2>
+        <p class="hero-sub">Build Android vector drawables on a real dp grid, then export clean XML — every project saves straight to this device, nothing leaves it.</p>
+      </div>
+      <div class="welcome-modal-visual" aria-hidden="true">
+        <svg class="keyline-diagram hero-blueprint" viewBox="0 0 200 200" focusable="false">
+          <line x1="100" y1="16" x2="100" y2="184" class="bp-cross"/>
+          <line x1="16" y1="100" x2="184" y2="100" class="bp-cross"/>
+          <rect x="30" y="44" width="140" height="112" class="bp-rect"/>
+          <rect x="44" y="30" width="112" height="140" class="bp-rect"/>
+          <rect x="37" y="37" width="126" height="126" class="bp-square"/>
+          <circle cx="100" cy="100" r="70" class="bp-circle"/>
+          <rect x="16" y="16" width="168" height="168" rx="16" class="bp-frame"/>
+          <circle cx="16" cy="16" r="2" class="bp-dot"/><circle cx="184" cy="16" r="2" class="bp-dot"/>
+          <circle cx="16" cy="184" r="2" class="bp-dot"/><circle cx="184" cy="184" r="2" class="bp-dot"/>
+          <circle cx="100" cy="100" r="2" class="bp-dot"/>
+        </svg>
+        <p class="hero-caption">24dp keyline guide</p>
+      </div>
+    </div>`;
+  DOM.modalFoot.innerHTML = '';
+  const gotIt = document.createElement('button');
+  gotIt.className = 'btn primary';
+  gotIt.textContent = 'Got it';
+  gotIt.addEventListener('click', closeModal);
+  DOM.modalFoot.appendChild(gotIt);
+  DOM.modalBackdrop.classList.add('show');
+  try { localStorage.setItem(WELCOME_SEEN_KEY, '1'); } catch (e){ /* private browsing, storage disabled, etc. */ }
+}
+function maybeShowWelcomeModal(){
+  let seen = false;
+  try { seen = localStorage.getItem(WELCOME_SEEN_KEY) === '1'; } catch (e){ /* fall through and show it */ }
+  if (!seen) showWelcomeModal();
+}
+
 function showCreateProjectModal(){
+  resetModalWidthVariants();
   DOM.modalTitle.textContent = 'New project';
   DOM.modalBody.innerHTML = '<label class="modal-input-label" for="newProjectName">Project name</label><input id="newProjectName" class="modal-input" type="text" value="Untitled icon" maxlength="80" autocomplete="off">';
   DOM.modalFoot.innerHTML = '';
@@ -7689,10 +9088,69 @@ function wireCanvasEvents(){
   }
   chkSnap.addEventListener('change', () => { state.grid.snap = chkSnap.checked; chipSnap.classList.toggle('on', chkSnap.checked); });
 }
+let __gradDragActive = false;
 function wireSelectionPanels(){
   DOM.selectionPanels.addEventListener('input', onSelectionPanelsInput);
   DOM.selectionPanels.addEventListener('change', onSelectionPanelsChange);
   DOM.selectionPanels.addEventListener('click', onSelectionPanelsClick);
+  DOM.selectionPanels.addEventListener('pointerdown', onGradStopHandlePointerDown);
+}
+/* Which row's vertical band a Y coordinate falls in, clamped to the list. Shared by the
+   gradient stop list and the layers list — both drag a set of same-height rows within a
+   scrollable container using pointer events instead of native HTML5 drag-and-drop (see
+   the comment on onGradStopHandlePointerDown for why). Iterating in order and returning
+   on the first row whose bottom edge has been reached treats "in the gap above row i" the
+   same as "inside row i" — a fine simplification for short lists of fixed-height rows. */
+function rowIndexAtY(rows, y){
+  for (let i = 0; i < rows.length; i++){
+    if (y <= rows[i].getBoundingClientRect().bottom) return i;
+  }
+  return rows.length - 1;
+}
+/* Reorders a gradient's stop list by dragging. Deliberately pointer-events-based rather
+   than native HTML5 drag-and-drop: this page already has a window-level dragover/drop
+   listener for dropping an SVG or JSON file anywhere on the canvas, and it forces
+   dropEffect to 'copy' on every drag it sees — which fights with a reorder drag's
+   effectAllowed of 'move' and can make the browser refuse the drop outright. Pointer
+   events sidestep that entirely, and work on trackpads and touch where native drag
+   doesn't. Hit-testing is done by geometry (which row's band the pointer is over)
+   rather than by event target, which stays reliable throughout the gesture. */
+function onGradStopHandlePointerDown(e){
+  if (e.button != null && e.button !== 0) return;
+  const handle = e.target.closest('.drag-handle');
+  const row = handle && handle.closest('.grad-stop');
+  if (!row || __gradDragActive) return;
+  e.preventDefault();
+  __gradDragActive = true;
+  const list = row.parentElement; // .grad-stops — scoped to this one channel's own stops
+  const rows = Array.from(list.querySelectorAll('.grad-stop'));
+  const fromIndex = rows.indexOf(row);
+  const kind = row.dataset.kind;
+  let hoverIndex = fromIndex;
+  row.classList.add('dragging');
+
+  function onMove(ev){
+    hoverIndex = rowIndexAtY(rows, ev.clientY);
+    rows.forEach((r, i) => r.classList.toggle('dragover', i === hoverIndex && i !== fromIndex));
+  }
+  function onUp(){
+    window.removeEventListener('pointermove', onMove);
+    window.removeEventListener('pointerup', onUp);
+    window.removeEventListener('pointercancel', onUp);
+    rows.forEach(r => r.classList.remove('dragging', 'dragover'));
+    __gradDragActive = false;
+    if (hoverIndex !== fromIndex){
+      doAction(() => {
+        for (const s of selectedShapes()){
+          moveGradientStop(kind === 'stroke' ? s.strokeGradient : s.fillGradient, fromIndex, hoverIndex);
+        }
+      });
+      renderPropertiesPanel();
+    }
+  }
+  window.addEventListener('pointermove', onMove);
+  window.addEventListener('pointerup', onUp);
+  window.addEventListener('pointercancel', onUp);
 }
 function wireMisc(){
   document.getElementById('rightpanel').addEventListener('click', (e) => {
@@ -8209,8 +9667,10 @@ function init(){
   renderAll();
   document.body.classList.add('home-visible');
   renderHome();
+  maybeShowWelcomeModal();
   wireMobileBlock();
   wireReferencePanel();
+  initNumberSteppers();
 }
 if (document.readyState === 'loading'){
   document.addEventListener('DOMContentLoaded', init);
