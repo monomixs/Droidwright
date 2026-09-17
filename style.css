@@ -500,7 +500,32 @@ textarea{
   resize:vertical;
 }
 input[type=text]:focus, input[type=number]:focus, select.select:focus, textarea:focus{border-color:var(--accent-dim);outline:none;}
-input[type=number]::-webkit-inner-spin-button{opacity:.5;}
+
+/* ---- custom number steppers ----
+   Swaps the browser's native spin buttons for a pair that matches the rest of the panel
+   — every type=number input gets these via enhanceNumberInputs() in script.js, which
+   wraps inputs generically rather than needing each template to build its own markup. */
+input[type=number]::-webkit-inner-spin-button,
+input[type=number]::-webkit-outer-spin-button{
+  -webkit-appearance:none; appearance:none; margin:0; display:none;
+}
+input[type=number]{ -moz-appearance:textfield; appearance:textfield; }
+.num-stepper{ position:relative; display:flex; flex:1; min-width:0; }
+.num-stepper input[type=number]{ padding-right:19px; width:100%; }
+.num-stepper-btns{
+  position:absolute; top:1px; right:1px; bottom:1px; width:16px;
+  display:flex; flex-direction:column;
+  border-left:1px solid var(--line); border-radius:0 5px 5px 0; overflow:hidden;
+}
+.num-stepper:focus-within .num-stepper-btns{ border-left-color:var(--accent-dim); }
+.num-stepper-btn{
+  flex:1; min-height:0; display:flex; align-items:center; justify-content:center; padding:0;
+  background:var(--bg-3); color:var(--text-2); border:0; border-bottom:1px solid var(--line);
+}
+.num-stepper-btn:last-child{ border-bottom:0; }
+.num-stepper-btn svg{ width:7px; height:4px; pointer-events:none; }
+.num-stepper-btn:hover{ background:var(--bg-4); color:var(--accent); }
+.num-stepper-btn:active{ background:var(--accent-dim); color:var(--accent-ink); }
 .unit-suffix{position:relative;}
 .unit-suffix::after{
   content:attr(data-unit);position:absolute;right:8px;top:50%;transform:translateY(-50%);
@@ -564,6 +589,78 @@ input[type=range]::-moz-range-thumb{width:13px;height:13px;border:none;border-ra
 .preset-dot{width:18px;height:18px;border-radius:5px;border:1px solid rgba(255,255,255,.12);}
 .preset-dot:hover{outline:2px solid var(--text-1);outline-offset:1px;}
 
+/* ---- gradient editor ----
+   Anything that can be see-through is layered over the same checkerboard the color
+   swatches use, so a transparent stop reads as transparent rather than as the panel's
+   own background. The ramp arrives as --ramp rather than an inline background-image,
+   because an inline background-image would replace the checker layers instead of
+   stacking on top of them. */
+.grad-preview,.grad-preset{
+  --ramp:none;
+  background-color:transparent;
+  background-image:
+    var(--ramp),
+    linear-gradient(45deg,#3a3f4b 25%,transparent 25%),
+    linear-gradient(-45deg,#3a3f4b 25%,transparent 25%),
+    linear-gradient(45deg,transparent 75%,#3a3f4b 75%),
+    linear-gradient(-45deg,transparent 75%,#3a3f4b 75%);
+  background-repeat:no-repeat,repeat,repeat,repeat,repeat;
+  background-size:cover,8px 8px,8px 8px,8px 8px,8px 8px;
+  background-position:0 0,0 0,0 4px,4px -4px,-4px 0;
+}
+.grad-preview{
+  height:46px;margin-bottom:10px;border-radius:var(--radius-sm);
+  border:1px solid var(--line);overflow:hidden;
+}
+.grad-readout{color:var(--text-1);text-transform:none;font-family:var(--font-mono);}
+.grad-angle-row{margin-top:-2px;}
+.grad-angle-row .btn{padding:0 4px;font-size:10.5px;}
+
+.grad-stops-head{
+  display:flex;align-items:baseline;justify-content:space-between;gap:8px;
+  margin:12px 0 6px;color:var(--text-1);font:600 10.5px var(--font-ui);
+}
+.grad-stops-head .hint{margin:0;font-size:10px;}
+.grad-stops{display:flex;flex-direction:column;gap:5px;}
+.grad-stop{display:flex;align-items:center;gap:5px;border-top:2px solid transparent;}
+.grad-stop.dragover{border-top:2px solid var(--accent);}
+.grad-stop.dragging{opacity:.45;}
+.grad-stop .drag-handle{color:var(--text-2);cursor:grab;flex:none;width:12px;text-align:center;font-size:12px;line-height:1;touch-action:none;}
+.grad-stop .drag-handle:active{cursor:grabbing;}
+/* The generic [data-tip] tooltip grows leftward from the element's right edge, which
+   works for tooltips near a row's right side but not here — this handle sits at the far
+   left of the row, right against the panel's left edge, so growing left pushes it
+   straight into the scrollable panel's clipped overflow. Anchoring from the left instead
+   grows the tooltip rightward, into the row's own open space, where it stays fully
+   visible. The z-index bump is a belt-and-suspenders guard against any local stacking
+   context, though the reposition is what actually fixes the clipping. */
+.grad-stop .drag-handle[data-tip]::after{
+  left:0; right:auto; z-index:400;
+}
+.grad-stop-swatch{width:24px;height:24px;border-radius:6px;}
+.grad-stop-swatch i{border-radius:5px;}
+.grad-stop-hex{flex:1;min-width:0;}
+.grad-stop-num{position:relative;flex:none;width:52px;}
+.grad-stop-num input{width:100%;padding-right:15px;text-align:right;}
+.grad-stop-num span{
+  position:absolute;right:6px;top:50%;transform:translateY(-50%);
+  pointer-events:none;color:var(--text-2);font:10px var(--font-mono);
+}
+.grad-stop-del{
+  flex:none;width:22px;height:24px;display:inline-flex;align-items:center;justify-content:center;
+  padding:0;background:var(--bg-2);border:1px solid var(--line);border-radius:var(--radius-sm);
+  color:var(--text-2);font-size:10px;line-height:1;
+}
+.grad-stop-del:hover:not(:disabled){border-color:var(--danger);color:var(--danger);}
+.grad-stop-del:disabled{opacity:.35;cursor:not-allowed;}
+
+.grad-presets-head{margin:12px 0 6px;color:var(--text-1);font:600 10.5px var(--font-ui);}
+.grad-presets{display:grid;grid-template-columns:repeat(5,1fr);gap:5px;}
+.grad-preset{
+  height:26px;padding:0;border:1px solid rgba(255,255,255,.12);border-radius:var(--radius-sm);
+}
+.grad-preset:hover{outline:2px solid var(--text-1);outline-offset:1px;}
+
 .btn-row{display:flex;gap:6px;}
 .btn-row .btn{flex:1;}
 
@@ -623,7 +720,17 @@ input[type=range]::-moz-range-thumb{width:13px;height:13px;border:none;border-ra
 .layer-item:hover{background:var(--bg-2);}
 .layer-item.selected{background:rgba(94,225,160,.1);border-color:var(--accent-dim);}
 .layer-item.dragover{border-top:2px solid var(--accent);}
-.layer-item .drag-handle{color:var(--text-2);cursor:grab;flex:none;width:12px;height:12px;}
+.layer-item.dragging{opacity:.45;}
+.layer-item .drag-handle{color:var(--text-2);cursor:grab;flex:none;width:12px;height:12px;touch-action:none;}
+.layer-item .drag-handle:active{cursor:grabbing;}
+/* Same fix as the gradient stop list: the generic [data-tip] tooltip grows leftward from
+   the element's right edge, which works for tooltips near a row's right side but not
+   here — this handle sits at the far left of the row, right against the panel's edge, so
+   growing left pushed it straight into the scrollable list's clipped overflow. Anchoring
+   from the left instead grows it rightward, into the row's own open space. */
+.layer-item .drag-handle[data-tip]::after{
+  left:0; right:auto; z-index:400;
+}
 .layer-item .type-ic{width:15px;height:15px;flex:none;color:var(--text-1);}
 .layer-item.selected .type-ic{color:var(--accent);}
 .lname, .gname{
@@ -728,27 +835,53 @@ input[type=range]::-moz-range-thumb{width:13px;height:13px;border:none;border-ra
 #toast svg{width:14px;height:14px;color:var(--accent);flex:none;}
 
 /* ---- modal ---- */
+/* ---- mobile block ----
+   This notice has to stay legible on a phone whether or not the browser is in "Desktop
+   site" mode. In that mode the page is laid out at ~980px and then zoomed out to fit the
+   real screen, so anything sized in px renders physically tiny. Everything here is sized
+   in vmin instead: a vmin is always the same fraction of the screen no matter what the
+   layout viewport is set to, so the card occupies identical physical space either way.
+   The px values below are floors for genuinely small viewports, never caps — a cap would
+   reintroduce exactly the shrinking this avoids. */
 .mobile-block-overlay{
   position:fixed; inset:0; z-index:99999;
   display:none; align-items:center; justify-content:center;
-  padding:24px;
+  padding:max(16px, 4vmin);
   background:radial-gradient(120% 120% at 50% 0%, #1b2030 0%, #0c0e14 70%);
+  overflow:auto;
 }
 .mobile-block-overlay.show{ display:flex; }
+body.mobile-blocked{ overflow:hidden; }
 .mobile-block-card{
-  max-width:340px; width:100%;
+  width:min(92vw, 86vmin);
+  max-width:none;
   text-align:center;
   background:var(--bg-2);
   border:1px solid var(--line);
-  border-radius:var(--radius-lg);
-  padding:28px 22px 24px;
+  border-radius:max(14px, 3.5vmin);
+  padding:max(24px, 7vmin) max(18px, 5.5vmin) max(20px, 6vmin);
   box-shadow:0 20px 60px rgba(0,0,0,.45);
 }
-.mobile-block-icon{ width:44px; height:44px; color:var(--text-2); margin-bottom:14px; }
-.mobile-block-card h2{ font:600 17px var(--font-ui); color:var(--text-0); margin:0 0 10px; }
-.mobile-block-card p{ font-size:12.5px; line-height:1.6; color:var(--text-1); margin:0 0 8px; }
-.mobile-block-card .mobile-block-sub{ color:var(--text-2); margin-bottom:20px; }
-.mobile-block-card .btn{ width:100%; justify-content:center; }
+.mobile-block-icon{
+  width:max(40px, 11vmin); height:max(40px, 11vmin);
+  color:var(--text-2); margin:0 auto max(12px, 3.5vmin);
+}
+.mobile-block-card h2{
+  font-family:var(--font-ui); font-weight:600; font-size:max(17px, 4.6vmin);
+  color:var(--text-0); margin:0 0 max(8px, 2.4vmin); line-height:1.25;
+}
+.mobile-block-card p{
+  font-size:max(12.5px, 3.3vmin); line-height:1.6; color:var(--text-1);
+  margin:0 0 max(8px, 2.2vmin);
+}
+.mobile-block-card .mobile-block-sub{ color:var(--text-2); margin-bottom:max(18px, 5vmin); }
+.mobile-block-card .btn{
+  width:100%; justify-content:center;
+  height:auto; min-height:max(34px, 11vmin);
+  padding:max(8px, 2.2vmin) max(12px, 3vmin);
+  font-size:max(12px, 3.3vmin);
+  border-radius:max(8px, 2.2vmin);
+}
 .modal-backdrop{
   position:fixed;inset:0;background:rgba(8,9,13,.6);backdrop-filter:blur(2px);
   display:flex;align-items:center;justify-content:center;z-index:400;
@@ -812,7 +945,7 @@ input[type=range]::-moz-range-thumb{width:13px;height:13px;border:none;border-ra
 }
 .home-header{
   position:sticky;top:0;z-index:30;
-  height:64px;display:flex;align-items:center;justify-content:space-between;gap:16px;flex-wrap:wrap;
+  height:56px;display:flex;align-items:center;justify-content:space-between;gap:16px;flex-wrap:wrap;
   padding:0 clamp(20px,5vw,72px);
   background:rgba(17,19,25,.78);backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);
   border-bottom:1px solid rgba(164,171,187,.13);
@@ -842,6 +975,58 @@ input[type=range]::-moz-range-thumb{width:13px;height:13px;border:none;border-ra
 .about-modal-meta span{
   padding:5px 9px;border:1px solid var(--line);border-radius:var(--radius-pill);
 }
+
+/* ---- Changelog popup: GitHub releases, fetched live (see fetchGithubReleases) ---- */
+.modal-backdrop.changelog-open .modal{width:640px;}
+.changelog-modal-body{max-height:65vh;overflow-y:auto;display:flex;flex-direction:column;gap:18px;padding-right:2px;}
+.changelog-stale-banner{
+  font-size:11px;color:var(--text-2);background:var(--bg-2);border:1px solid var(--line);
+  border-radius:var(--radius-sm);padding:8px 10px;
+}
+.release-item{padding-bottom:18px;border-bottom:1px solid var(--line-soft);}
+.release-item:last-child{border-bottom:0;padding-bottom:0;}
+.release-head{display:flex;align-items:center;flex-wrap:wrap;gap:8px;margin-bottom:10px;}
+.release-tag{font-size:10.5px;}
+.release-prerelease-tag{
+  font:600 9px var(--font-mono);letter-spacing:.3px;text-transform:uppercase;
+  color:var(--text-2);background:var(--bg-3);border:1px solid var(--line);
+  border-radius:var(--radius-pill);padding:3px 8px;
+}
+.release-name{font:600 13px var(--font-ui);color:var(--text-0);}
+.release-date{margin-left:auto;font:500 10.5px var(--font-mono);color:var(--text-2);white-space:nowrap;}
+.release-link{display:inline-block;margin-top:10px;font-size:11px;color:var(--accent-2);text-decoration:none;}
+.release-link:hover{text-decoration:underline;}
+
+/* the rendered Markdown body — see renderReleaseMarkdown() */
+.release-notes{font-size:12.5px;line-height:1.65;color:var(--text-1);}
+.release-notes h3,.release-notes h4{margin:14px 0 6px;color:var(--text-0);font-family:var(--font-ui);}
+.release-notes h3{font-size:14px;}
+.release-notes h4{font-size:12.5px;}
+.release-notes p{margin:0 0 10px;}
+.release-notes p:last-child{margin-bottom:0;}
+.release-notes ul,.release-notes ol{margin:0 0 10px;padding-left:20px;}
+.release-notes li{margin:3px 0;}
+.release-notes code{
+  background:var(--bg-3);border:1px solid var(--line);border-radius:4px;
+  padding:1px 5px;font-family:var(--font-mono);font-size:11px;color:var(--accent-2);
+}
+.release-notes pre{
+  background:#151820;border:1px solid var(--line);border-radius:6px;padding:10px 12px;
+  overflow-x:auto;margin:0 0 10px;
+}
+.release-notes pre code{background:none;border:0;padding:0;color:#c7cbd6;}
+.release-notes a{color:var(--accent-2);text-decoration:none;}
+.release-notes a:hover{text-decoration:underline;}
+.release-notes blockquote{
+  margin:0 0 10px;padding:2px 12px;border-left:2px solid var(--line);color:var(--text-2);
+}
+.release-notes hr{border:0;border-top:1px solid var(--line-soft);margin:14px 0;}
+.release-notes strong{color:var(--text-0);}
+.release-notes-empty{color:var(--text-2);font-style:italic;}
+@media (max-width:680px){
+  .modal-backdrop.changelog-open .modal{width:92vw;}
+}
+
 .local-badge{
   display:inline-flex;align-items:center;gap:6px;padding:7px 11px 7px 9px;
   border:1px solid var(--line);border-radius:var(--radius-pill);
@@ -849,32 +1034,47 @@ input[type=range]::-moz-range-thumb{width:13px;height:13px;border:none;border-ra
 }
 .local-badge svg{width:13px;height:13px;color:var(--accent);flex:none;}
 
-.home-content{max-width:1180px;margin:0 auto;padding:clamp(40px,7vw,76px) clamp(20px,5vw,72px) 90px;}
+.home-content{max-width:1180px;margin:0 auto;padding:clamp(22px,3.5vw,40px) clamp(20px,5vw,72px) 52px;}
 
-/* ---- hero: grounded in the app's own keyline/dp vocabulary ---- */
-.home-hero{position:relative;padding-right:clamp(0px,26vw,300px);margin-bottom:44px;}
-.eyebrow{margin:0 0 10px;color:var(--accent);font:600 11px var(--font-mono);letter-spacing:1.4px;text-transform:uppercase;}
-.home-hero h1{margin:0;max-width:640px;font:600 clamp(30px,4.6vw,48px) var(--font-ui);letter-spacing:-.01em;line-height:1.08;}
-.hero-sub{margin:14px 0 0;max-width:480px;color:var(--text-1);font-size:14px;line-height:1.6;}
-
-.spec-strip{display:flex;flex-wrap:wrap;gap:0;margin-top:30px;padding-top:18px;border-top:1px solid var(--line-soft);max-width:560px;}
+/* ---- hero: now just the at-a-glance stats. The headline, subtitle, and illustration
+   that used to live here moved into the one-time welcome popup (showWelcomeModal) —
+   showing them inline meant every return visit scrolled past an intro the person had
+   already read, just to reach their own projects. */
+.home-hero{margin-bottom:20px;}
+.spec-strip{display:flex;flex-wrap:wrap;gap:0;max-width:560px;}
 .spec-item{display:flex;flex-direction:column;gap:4px;padding-right:26px;margin-right:26px;border-right:1px solid var(--line-soft);}
 .spec-item:last-child{border-right:0;margin-right:0;padding-right:0;}
-.spec-value{font:600 19px var(--font-ui);color:var(--text-0);letter-spacing:-.01em;}
+.spec-value{font:600 16px var(--font-ui);color:var(--text-0);letter-spacing:-.01em;}
 .spec-label{font:500 9.5px var(--font-mono);letter-spacing:.6px;text-transform:uppercase;color:var(--text-2);}
 
-/* the keyline diagram: the same 24dp guide the editor's own "Keyline guide"
-   toggle draws on the canvas, echoed here as ambient hero art */
+/* the keyline diagram: the same 24dp guide the editor's own "Keyline guide" toggle draws
+   on the canvas, echoed here as ambient art. Shared by the welcome popup's illustration
+   and the empty-state illustration below. */
 .keyline-diagram .bp-frame{fill:none;stroke:currentColor;stroke-width:1.1;stroke-dasharray:3 4;opacity:.55;}
 .keyline-diagram .bp-square{fill:none;stroke:currentColor;stroke-width:1;opacity:.3;}
 .keyline-diagram .bp-rect{fill:none;stroke:currentColor;stroke-width:1;opacity:.22;}
 .keyline-diagram .bp-circle{fill:none;stroke:currentColor;stroke-width:1.2;opacity:.4;}
 .keyline-diagram .bp-cross{stroke:currentColor;stroke-width:.6;opacity:.14;}
 .keyline-diagram .bp-dot{fill:currentColor;opacity:.5;}
-.hero-blueprint-wrap{position:absolute;right:-8px;top:50%;transform:translateY(-50%);width:min(230px,24vw);text-align:center;pointer-events:none;}
+.empty-blueprint{display:block;width:88px;height:88px;margin:0 auto 22px;color:var(--accent-2);opacity:.7;}
+
+/* ---- welcome popup: the eyebrow/heading/subtitle/illustration that used to be the
+   inline hero, styles reused as-is, just laid out for a modal instead of the full-width
+   page (a flex row instead of the hero's absolutely-positioned illustration). ---- */
+.modal-backdrop.welcome-open .modal{width:600px;}
+.welcome-modal-body{display:flex;align-items:center;gap:28px;}
+.welcome-modal-text{flex:1;min-width:0;}
+.welcome-modal-visual{flex:none;width:min(180px,34vw);text-align:center;}
+.eyebrow{margin:0 0 10px;color:var(--accent);font:600 11px var(--font-mono);letter-spacing:1.4px;text-transform:uppercase;}
+.welcome-modal-text h2{margin:0;font:600 clamp(22px,3.2vw,28px) var(--font-ui);letter-spacing:-.01em;line-height:1.15;color:var(--text-0);}
+.hero-sub{margin:12px 0 0;color:var(--text-1);font-size:13px;line-height:1.6;}
 .hero-blueprint{display:block;width:100%;height:auto;color:var(--accent-2);opacity:.55;}
 .hero-caption{margin-top:10px;font:500 9.5px var(--font-mono);letter-spacing:.5px;color:var(--text-2);}
-.empty-blueprint{display:block;width:88px;height:88px;margin:0 auto 22px;color:var(--accent-2);opacity:.7;}
+@media (max-width: 620px){
+  .modal-backdrop.welcome-open .modal{width:92vw;}
+  .welcome-modal-body{flex-direction:column-reverse;gap:16px;}
+  .welcome-modal-visual{width:120px;}
+}
 
 /* ---- toolbar: search + sort ---- */
 .home-toolbar{display:flex;align-items:center;justify-content:space-between;gap:16px;margin-bottom:18px;flex-wrap:wrap;}
@@ -896,10 +1096,10 @@ input[type=range]::-moz-range-thumb{width:13px;height:13px;border:none;border-ra
 .sort-btn.on{background:rgba(94,225,160,.14);color:var(--accent);}
 
 /* ---- grid ---- */
-.project-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(225px,1fr));gap:16px;}
+.project-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(245px,1fr));gap:16px;}
 .project-card{
   --stagger:0;
-  min-height:250px;display:flex;flex-direction:column;position:relative;
+  min-height:286px;display:flex;flex-direction:column;position:relative;
   background:rgba(31,35,45,.82);border:1px solid var(--line);border-radius:12px;overflow:visible;
   cursor:pointer;transition:transform .16s ease,border-color .16s ease,background .16s ease,box-shadow .16s ease;
   animation:home-rise .4s cubic-bezier(.2,.8,.2,1) both;animation-delay:calc(var(--stagger) * 32ms);
@@ -910,7 +1110,7 @@ input[type=range]::-moz-range-thumb{width:13px;height:13px;border:none;border-ra
 }
 .project-card:focus-visible{outline:2px solid var(--accent-2);outline-offset:2px;}
 .project-preview{
-  height:158px;flex:none;display:flex;align-items:center;justify-content:center;position:relative;
+  height:186px;flex:none;display:flex;align-items:center;justify-content:center;position:relative;
   background:radial-gradient(circle,#303949 0%,#202631 72%);border-bottom:1px solid var(--line);
   border-radius:11px 11px 0 0;overflow:hidden;
 }
@@ -918,7 +1118,14 @@ input[type=range]::-moz-range-thumb{width:13px;height:13px;border:none;border-ra
   content:'';position:absolute;top:50%;left:50%;width:60%;aspect-ratio:1/1;border-radius:50%;
   border:1px dashed rgba(111,168,255,.22);transform:translate(-50%,-50%);pointer-events:none;
 }
-.project-preview svg{width:100px;height:100px;filter:drop-shadow(0 8px 14px rgba(0,0,0,.28));position:relative;}
+.project-preview svg{width:138px;height:138px;filter:drop-shadow(0 8px 14px rgba(0,0,0,.28));position:relative;}
+/* An icon that paints its own background is a solid tile, so give it a real edge —
+   without one it bleeds into the card's backdrop and reads as a rendering glitch. */
+.project-preview svg.has-bg,.quickview-canvas svg.has-bg{
+  border-radius:8px;
+  box-shadow:0 0 0 1px rgba(255,255,255,.08),0 8px 18px rgba(0,0,0,.34);
+  filter:none;
+}
 .project-info{padding:13px 15px 13px;min-width:0;display:flex;flex-direction:column;flex:1;}
 .project-info-head{display:flex;align-items:center;gap:8px;min-width:0;}
 .project-info-head .project-name{flex:1;min-width:0;}
@@ -960,10 +1167,59 @@ input[type=range]::-moz-range-thumb{width:13px;height:13px;border:none;border-ra
 .modal-input{width:100%;height:34px;padding:0 10px;background:var(--bg-2);border:1px solid var(--line);border-radius:var(--radius-sm);outline:0;}
 .modal-input:focus{border-color:var(--accent-2);box-shadow:0 0 0 2px rgba(111,168,255,.14);}
 .project-quickview{padding-top:14px;}
-.quickview-preview{height:260px;display:flex;align-items:center;justify-content:center;background:radial-gradient(circle,#303949 0%,#202631 72%);border:1px solid var(--line);border-radius:8px;}
-.quickview-preview svg{width:190px;height:190px;filter:drop-shadow(0 8px 14px rgba(0,0,0,.25));}
+/* The quick view carries a zoomable canvas or a block of XML, so it needs more room than
+   the 380px the confirm-style dialogs are built around. */
+.modal-backdrop.quickview-open .modal{width:640px;}
+
+.quickview-rename{display:flex;align-items:center;gap:8px;margin-bottom:12px;}
+.quickview-name-input{flex:1;min-width:0;font:600 13px var(--font-ui);}
+.quickview-rename .btn{flex:none;}
+
+.quickview-preview{
+  height:300px;display:flex;align-items:center;justify-content:center;overflow:hidden;
+  background:radial-gradient(circle,#303949 0%,#202631 72%);
+  border:1px solid var(--line);border-radius:8px;
+  touch-action:none;
+}
+.quickview-preview.pannable{cursor:grab;}
+.quickview-preview.panning{cursor:grabbing;}
+.quickview-canvas{
+  display:flex;align-items:center;justify-content:center;
+  transform-origin:center center;
+  will-change:transform;
+}
+.quickview-canvas svg{width:190px;height:190px;filter:drop-shadow(0 8px 14px rgba(0,0,0,.25));}
+
+.quickview-controls{display:flex;align-items:center;justify-content:center;gap:6px;margin-top:10px;}
+.quickview-ctrl{
+  width:30px;height:28px;display:inline-flex;align-items:center;justify-content:center;padding:0;
+  background:var(--bg-2);border:1px solid var(--line);border-radius:var(--radius-sm);color:var(--text-1);
+}
+.quickview-ctrl:hover{background:var(--bg-4);border-color:var(--accent-dim);color:var(--accent);}
+.quickview-ctrl svg{width:14px;height:14px;}
+.quickview-zoom-label{
+  min-width:52px;text-align:center;color:var(--text-1);font:500 11px var(--font-mono);
+}
+
 .quickview-meta{margin-top:10px;color:var(--text-2);font:10px var(--font-mono);}
-.project-quickview pre{max-height:420px;margin:0;padding:12px;overflow:auto;background:#151820;border:1px solid var(--line);border-radius:6px;color:#c7cbd6;font:11px/1.65 var(--font-mono);white-space:pre-wrap;}
+
+/* code view: gutter and code scroll together but stay separate elements so line numbers
+   can't be swept up in a copy */
+.quickview-code{
+  display:flex;max-height:420px;overflow:hidden;
+  background:#151820;border:1px solid var(--line);border-radius:6px;
+}
+.quickview-gutter{
+  flex:none;padding:12px 8px 12px 10px;overflow:hidden;
+  border-right:1px solid var(--line);background:#12151c;
+  color:var(--text-2);font:11px/1.65 var(--font-mono);text-align:right;
+  white-space:pre;user-select:none;
+}
+.project-quickview pre{
+  flex:1;min-width:0;max-height:420px;margin:0;padding:12px;overflow:auto;
+  background:transparent;border:0;border-radius:0;color:#c7cbd6;
+  font:11px/1.65 var(--font-mono);white-space:pre;
+}
 .project-quickview pre .tag{color:#7ee0c0;}
 .project-quickview pre .attr{color:#6fa8ff;}
 .project-quickview pre .val{color:#f5b75e;}
@@ -973,21 +1229,12 @@ input[type=range]::-moz-range-thumb{width:13px;height:13px;border:none;border-ra
 /* ---- motion: one orchestrated entrance, then quiet ---- */
 @keyframes home-rise{from{opacity:0;transform:translateY(10px);}to{opacity:1;transform:translateY(0);}}
 @keyframes home-fade-up{from{opacity:0;transform:translateY(12px);}to{opacity:1;transform:translateY(0);}}
-@keyframes home-blueprint-in{from{opacity:0;transform:translateY(-50%) translateX(6px) scale(.98);}to{opacity:1;transform:translateY(-50%) translateX(0) scale(1);}}
-.home-hero .eyebrow{animation:home-fade-up .5s ease both;}
-.home-hero h1{animation:home-fade-up .55s ease .05s both;}
-.home-hero .hero-sub{animation:home-fade-up .55s ease .1s both;}
-.home-hero .spec-strip{animation:home-fade-up .55s ease .18s both;}
-.hero-blueprint-wrap{animation:home-blueprint-in .7s ease .12s both;}
+.home-hero .spec-strip{animation:home-fade-up .5s ease both;}
 @media (prefers-reduced-motion: reduce){
-  .project-card,.home-hero .eyebrow,.home-hero h1,.home-hero .hero-sub,.home-hero .spec-strip,.hero-blueprint-wrap{animation:none !important;}
+  .project-card,.home-hero .spec-strip{animation:none !important;}
 }
 
 /* ---- responsive ---- */
-@media (max-width:900px){
-  .home-hero{padding-right:0;}
-  .hero-blueprint-wrap{display:none;}
-}
 @media (max-width:680px){
   .home-header{height:auto;padding:14px clamp(16px,5vw,32px);}
   .home-header-actions{width:100%;justify-content:flex-start;flex-wrap:wrap;}
