@@ -1,3 +1,4 @@
+![Alt text](screenshots/droidwright_logo.png)
 # Droidwright — Android Vector Icon Editor
 
 A fast, lightweight, local-first vector editor built specifically for creating Android `VectorDrawable` XML icons on a real dp canvas.
