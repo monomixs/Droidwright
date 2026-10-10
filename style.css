@@ -202,12 +202,10 @@ svg{display:block;}
   margin-right:2px;
 }
 .brand .mark{
-  width:22px;height:22px;border-radius:6px;
-  background:#111319;
+  width:32px;height:32px;flex:none;
   display:flex;align-items:center;justify-content:center;
-  box-shadow:inset 0 0 0 1px var(--line);
 }
-.brand .mark svg{width:14px;height:14px;}
+.brand .mark svg{width:100%;height:100%;display:block;}
 .brand small{color:var(--text-2);font-weight:500;font-size:10px;letter-spacing:.5px;text-transform:uppercase;margin-left:2px;}
 .version-badge{
   font:600 9.5px var(--font-mono);
@@ -588,7 +586,13 @@ input[type=text], input[type=number], select.select, textarea{
   font-family:var(--font-mono);
   font-size:11.5px;
 }
-select.select{font-family:var(--font-body);font-size:11.5px;}
+select.select{
+  font-family:var(--font-body);font-size:11.5px;
+  appearance:none;-webkit-appearance:none;-moz-appearance:none;
+  cursor:pointer;padding-right:26px;
+  background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%238a92a6' stroke-width='2.2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M6 9l6 6 6-6'/%3E%3C/svg%3E");
+  background-repeat:no-repeat;background-position:right 7px center;background-size:14px;
+}
 textarea{
   height:auto;
   min-height:52px;
@@ -677,7 +681,7 @@ input[type=range]::-moz-range-thumb{width:13px;height:13px;border:none;border-ra
   position:relative;overflow:hidden;
 }
 .swatch i{position:absolute;inset:0;border-radius:6px;}
-.swatch input[type=color]{position:absolute;inset:-4px;opacity:0;cursor:pointer;width:150%;height:150%;}
+.swatch input[type=color]{position:absolute;inset:-4px;opacity:0;cursor:pointer;width:150%;height:150%;pointer-events:none;}
 .hexinput{flex:1;}
 .opacity-num{width:46px;flex:none;text-align:right;}
 
@@ -1004,6 +1008,7 @@ body.mobile-blocked{ overflow:hidden; }
   opacity:0.85;
 }
 .sel-handle{fill:#151824;stroke:var(--accent);stroke-width:1.5;vector-effect:non-scaling-stroke;cursor:pointer;}
+.sel-handle-edge{stroke:transparent;stroke-width:10;vector-effect:non-scaling-stroke;}
 .sel-handle[data-handle="n"],.sel-handle[data-handle="s"]{cursor:ns-resize;}
 .sel-handle[data-handle="e"],.sel-handle[data-handle="w"]{cursor:ew-resize;}
 .sel-handle[data-handle="nw"],.sel-handle[data-handle="se"]{cursor:nwse-resize;}
@@ -1054,7 +1059,7 @@ body.mobile-blocked{ overflow:hidden; }
 .home-group-actions{display:flex;align-items:center;gap:8px;}
 .home-group-actions .btn{white-space:nowrap;}
 .home-group-actions span{color:var(--accent-text);font:500 10px var(--font-mono);white-space:nowrap;}
-.about-modal-body{display:flex;flex-direction:column;gap:16px;}
+.about-modal-body{display:flex;flex-direction:column;gap:16px;-webkit-user-select:text;user-select:text;}
 .about-modal-profile{display:flex;align-items:center;gap:14px;}
 .about-modal-avatar{
   width:56px;height:56px;border-radius:50%;object-fit:cover;flex:none;
@@ -1076,6 +1081,7 @@ body.mobile-blocked{ overflow:hidden; }
 /* ---- Changelog popup: GitHub releases, fetched live (see fetchGithubReleases) ---- */
 .modal-backdrop.changelog-open .modal{width:640px;}
 .changelog-modal-body{max-height:65vh;overflow-y:auto;display:flex;flex-direction:column;gap:18px;padding-right:2px;}
+.changelog-modal-body{-webkit-user-select:text;user-select:text;}
 .changelog-stale-banner{
   font-size:11px;color:var(--text-2);background:var(--bg-2);border:1px solid var(--line);
   border-radius:var(--radius-sm);padding:8px 10px;
@@ -1161,7 +1167,8 @@ body.mobile-blocked{ overflow:hidden; }
 .modal-backdrop.welcome-open .modal{width:600px;}
 .welcome-modal-body{display:flex;align-items:center;gap:28px;}
 .welcome-modal-text{flex:1;min-width:0;}
-.welcome-modal-visual{flex:none;width:min(180px,34vw);text-align:center;}
+.welcome-modal-visual{flex:none;width:min(200px,38vw);text-align:center;}
+.welcome-logo{width:100%;height:auto;display:block;filter:drop-shadow(0 6px 22px rgba(var(--accent-rgb),.28));}
 .eyebrow{margin:0 0 10px;color:var(--accent-text);font:600 11px var(--font-mono);letter-spacing:1.4px;text-transform:uppercase;}
 .welcome-modal-text h2{margin:0;font:600 clamp(22px,3.2vw,28px) var(--font-ui);letter-spacing:-.01em;line-height:1.15;color:var(--text-0);}
 .hero-sub{margin:12px 0 0;color:var(--text-1);font-size:13px;line-height:1.6;}
@@ -1530,6 +1537,64 @@ body.mobile-blocked{ overflow:hidden; }
   opacity:0.4;
   cursor:not-allowed;
 }
+
+/* ---- custom color picker popover ---- */
+.color-picker-popover{
+  position:fixed;z-index:1200;
+  background:var(--bg-3);border:1px solid var(--line);border-radius:var(--radius-md);
+  box-shadow:var(--shadow-2);padding:12px;width:200px;
+  display:flex;flex-direction:column;gap:10px;
+}
+.cp-sv{position:relative;width:100%;height:130px;border-radius:8px;overflow:hidden;cursor:crosshair;border:1px solid var(--line-soft);}
+.cp-sv-white{position:absolute;inset:0;background:linear-gradient(to right,#fff,rgba(255,255,255,0));}
+.cp-sv-black{position:absolute;inset:0;background:linear-gradient(to top,#000,rgba(0,0,0,0));}
+.cp-sv-thumb{
+  position:absolute;width:14px;height:14px;border-radius:50%;
+  border:2px solid #fff;box-shadow:0 0 0 1px rgba(0,0,0,.35),0 1px 3px rgba(0,0,0,.4);
+  transform:translate(-50%,-50%);pointer-events:none;
+}
+.cp-slider{position:relative;height:14px;border-radius:7px;cursor:pointer;flex:none;}
+.cp-hue{background:linear-gradient(to right,#f00,#ff0,#0f0,#0ff,#00f,#f0f,#f00);}
+.cp-alpha{
+  background-image:
+    linear-gradient(45deg,var(--checker) 25%,transparent 25%),
+    linear-gradient(-45deg,var(--checker) 25%,transparent 25%),
+    linear-gradient(45deg,transparent 75%,var(--checker) 75%),
+    linear-gradient(-45deg,transparent 75%,var(--checker) 75%);
+  background-size:8px 8px;background-position:0 0,0 4px,4px -4px,-4px 0;
+}
+.cp-alpha-fill{position:absolute;inset:0;border-radius:7px;}
+.cp-slider-thumb{
+  position:absolute;top:50%;width:14px;height:14px;border-radius:50%;
+  border:2px solid #fff;box-shadow:0 0 0 1px rgba(0,0,0,.35),0 1px 3px rgba(0,0,0,.4);
+  transform:translate(-50%,-50%);pointer-events:none;
+}
+.cp-fields{display:flex;gap:6px;}
+.cp-hex-wrap{
+  flex:1;min-width:0;display:flex;align-items:center;gap:2px;
+  background:var(--bg-2);border:1px solid var(--line);border-radius:var(--radius-sm);
+  padding:0 8px;height:28px;box-sizing:border-box;
+}
+.cp-hex-wrap span{color:var(--text-2);font-family:var(--font-mono);font-size:11.5px;}
+.cp-hex-wrap input.cp-hex{border:none !important;background:transparent !important;padding:0 !important;height:auto !important;text-transform:uppercase;flex:1;min-width:0;width:100%;box-sizing:border-box;}
+.cp-fields input.cp-alpha-num{width:56px !important;flex:none;text-align:center;box-sizing:border-box;}
+
+/* ---- custom dropdown list (replaces the native <select> open list) ---- */
+.custom-dropdown-list{
+  position:fixed;z-index:1200;
+  background:var(--bg-3);border:1px solid var(--line);border-radius:var(--radius-md);
+  box-shadow:var(--shadow-2);padding:4px;
+  display:flex;flex-direction:column;gap:1px;
+  max-height:min(320px,calc(100vh - 24px));overflow-y:auto;
+}
+.dropdown-item{
+  display:block;width:100%;text-align:left;padding:7px 10px;border-radius:6px;
+  background:transparent;border:none;color:var(--text-0);font-family:var(--font-body);
+  font-size:12px;cursor:pointer;white-space:nowrap;
+}
+.dropdown-item:hover:not(:disabled),.dropdown-item:focus:not(:disabled){background:var(--bg-4);color:var(--accent-text);outline:none;}
+.dropdown-item.selected{color:var(--accent-text);font-weight:600;}
+.dropdown-item:disabled{opacity:0.4;cursor:not-allowed;}
 
 /* ---- Node / Path Editor & Curve styles ---- */
 .sel-handle.node-handle{
@@ -2075,3 +2140,12 @@ label.setting-label{cursor:pointer;}
 @media (prefers-reduced-motion:reduce){
   .keybind-capture-backdrop,.keybind-capture-dialog{transition:none;}
 }
+
+/* ---- no text selection on app chrome ----
+   The whole app behaves like a native tool: labels, panels, toolbars and dialog titles
+   are never selectable, so click-dragging from the canvas past the edge of the artboard
+   can't sweep up UI text. Only real text-entry surfaces keep selection. */
+html,body{-webkit-user-select:none;user-select:none;}
+input,textarea,select,[contenteditable="true"],[contenteditable=""],.selectable{-webkit-user-select:text;user-select:text;}
+#xml-highlight,#xml-code-wrap{-webkit-user-select:text;user-select:text;}
+.settings-title,.settings-nav,.settings-tab{-webkit-user-select:none;user-select:none;}

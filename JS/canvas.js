@@ -159,6 +159,20 @@ function renderArtboardAndGrid(){
   // painting a dark rect here made it look like a hard-edged box you couldn't create shapes
   // outside of. Leaving it transparent lets the canvas panel's own backdrop show through,
   // so the area reads as open canvas instead of a walled boundary.
+  // Scale the checker pattern proportionally to canvas size so the transparency grid
+  // stays fine and small on smaller canvases instead of blowing up into huge blocks.
+  const pattern = document.getElementById('checkerPattern');
+  if (pattern){
+    const checkScale = Math.min(w, h) / 512;
+    const s = Math.max(0.001, checkScale);
+    pattern.setAttribute('width', fmt(s * 2));
+    pattern.setAttribute('height', fmt(s * 2));
+    pattern.innerHTML = '';
+    pattern.appendChild(svgEl('rect', { width: fmt(s * 2), height: fmt(s * 2), fill: 'var(--stage-check-a)' }));
+    pattern.appendChild(svgEl('rect', { width: fmt(s), height: fmt(s), fill: 'var(--stage-check-b)' }));
+    pattern.appendChild(svgEl('rect', { x: fmt(s), y: fmt(s), width: fmt(s), height: fmt(s), fill: 'var(--stage-check-b)' }));
+  }
+
   gArtboard.appendChild(svgEl('rect', { x:0, y:0, width:w, height:h, fill:'url(#checkerPattern)' }));
 
   if (d.backgroundEnabled){
@@ -176,9 +190,24 @@ function renderArtboardAndGrid(){
   }
 
   if (state.grid.show){
-    let step = state.grid.snapSize > 0 ? state.grid.snapSize : 1;
-    while ((w/step) > 60 || (h/step) > 60) step *= 2;
-    const minor = svgEl('g', { stroke:'var(--stage-grid)', 'stroke-width':1, 'vector-effect':'non-scaling-stroke', opacity:0.55 });
+    // Target a fixed number of cells across the larger dimension so the on-screen grid
+    // density stays constant at any canvas size (matches how 512x512 currently looks:
+    // its old step of 16 gave 32 cells, so 32 is the reference target here). The old
+    // approach only kept cell COUNT within a loose 20-60 range via power-of-2 doubling,
+    // which let the actual on-screen cell size swing up to ~2x between sizes that
+    // landed in different parts of that range (e.g. 24 vs 48 vs 512) even though all
+    // were "within range" — this replaces it with a direct, continuous calculation.
+    const targetCells = 300; // higher = tighter grid spacing
+    const snapMultiplier = state.grid.snapSize > 0 ? state.grid.snapSize : 1;
+    let step = (Math.max(w, h) / targetCells) * snapMultiplier;
+    // Compute the stroke width explicitly as "1 device px, in current user-space units"
+    // rather than relying on vector-effect="non-scaling-stroke" alone — that technique
+    // isn't reliably honored across every browser/zoom combination, which is what let
+    // these lines render visibly thicker at the high zoom levels small canvases use.
+    // This mirrors the zoom-cancelling math already used for handle sizes elsewhere in
+    // this file (e.g. the 4.2/(PX_PER_UNIT*state.view.zoom) selection-handle radius).
+    const gridLineWidth = fmt(1 / (PX_PER_UNIT * (state.view.zoom || 1)));
+    const minor = svgEl('g', { stroke:'var(--stage-grid)', 'stroke-width':gridLineWidth, opacity:0.55 });
     for (let x = step; x < w; x += step){
       minor.appendChild(svgEl('line', { x1:x, y1:0, x2:x, y2:h }));
     }
@@ -187,14 +216,33 @@ function renderArtboardAndGrid(){
     }
     gGrid.appendChild(minor);
 
-    const mid = svgEl('g', { stroke:'var(--stage-grid-mid)', 'stroke-width':1, 'vector-effect':'non-scaling-stroke', opacity:0.8 });
+    const mid = svgEl('g', { stroke:'var(--stage-grid-mid)', 'stroke-width':gridLineWidth, opacity:0.8 });
     mid.appendChild(svgEl('line', { x1:w/2, y1:0, x2:w/2, y2:h }));
     mid.appendChild(svgEl('line', { x1:0, y1:h/2, x2:w, y2:h/2 }));
     gGrid.appendChild(mid);
   }
 
   if (state.grid.keyline){
-    const kg = svgEl('g', { fill:'none', stroke:'var(--accent)', 'stroke-width':1, 'vector-effect':'non-scaling-stroke', opacity:0.35, 'stroke-dasharray':'3 2' });
+    // Scale the dash pattern with canvas size (relative to the 512 reference) so it
+    // renders at a consistent on-screen size at any canvas size. Zoom auto-compensates
+    // for canvas size (small canvases get zoomed in more to fill the same screen area),
+    // and stroke-dasharray lengths — unlike stroke-width with non-scaling-stroke — scale
+    // with that zoom, so baseScale needs to cancel it out rather than being floored.
+    const baseScale = Math.min(w, h) / 512;
+    const dashScale = Math.max(baseScale, 0.001); // just guard against a zero/negative dash
+    const dash = fmt(3 * dashScale);
+    const gap = fmt(2 * dashScale);
+    // Same fix as the grid lines: compute the stroke width explicitly from zoom instead
+    // of relying on vector-effect="non-scaling-stroke", which wasn't reliably keeping
+    // this line thin on small, heavily-zoomed-in canvases.
+    // Below MIN_KEYLINE_WIDTH (in canvas units) it stops shrinking further, so at very
+    // high zoom the line holds a minimum visible thickness instead of thinning out to
+    // a near-invisible hairline. Past the zoom level where this floor kicks in, the
+    // line will start growing on screen along with everything else being zoomed in,
+    // rather than staying pinned to exactly 1 screen pixel forever.
+    const MIN_KEYLINE_WIDTH = 0.02;
+    const keylineWidth = fmt(Math.max(1 / (PX_PER_UNIT * (state.view.zoom || 1)), MIN_KEYLINE_WIDTH));
+    const kg = svgEl('g', { fill:'none', stroke:'var(--accent)', 'stroke-width':keylineWidth, opacity:0.35, 'stroke-dasharray':`${dash} ${gap}` });
     const cx = w/2, cy = h/2;
     kg.appendChild(svgEl('circle', { cx, cy, r: Math.min(w,h) * (10/24) }));
     const sq = w * (18/24), sqh = h * (18/24);
@@ -499,6 +547,34 @@ function renderDraftPreviews(){
   }
 }
 
+// A round corner handle (nw/ne/sw/se) — wrapped in a counter-scale <g> (same technique
+// the rotate handle already used below) so it stays a true circle even when the parent
+// shape has non-uniform scaleX/scaleY, rather than rendering as an ellipse.
+function appendCornerHandle(parent, name, px, py, hs, scaleX, scaleY, id, extraAttrs){
+  const wrap = svgEl('g', {
+    transform: `translate(${fmt(px)} ${fmt(py)}) scale(${fmt(1/scaleX)} ${fmt(1/scaleY)}) translate(${fmt(-px)} ${fmt(-py)})`,
+  });
+  wrap.appendChild(svgEl('circle', {
+    class: 'sel-handle', 'data-handle': name, cx: px, cy: py, r: hs, ...extraAttrs,
+  }));
+  parent.appendChild(wrap);
+}
+// A draggable line spanning the FULL length of one edge (n/s/e/w), Canva-style — grabbing
+// anywhere along the top/bottom/left/right edge (not just a single point on it) resizes
+// that one dimension. Unlike the corner dots, this is drawn directly under the shape's own
+// transform with no counter-scale wrapping: it needs to actually track the edge's real
+// length as the shape scales/rotates, and counter-scaling it would fight that. Only the
+// hit-area *thickness* needs to stay a reasonable, scale-independent size, which
+// vector-effect:non-scaling-stroke (set in the .sel-handle-edge CSS class) handles. It's
+// invisible (transparent stroke) since the shape's own .sel-outline already shows the
+// edge visually — this only adds the wider, resize-cursor-bearing hit area on top of it.
+function appendEdgeHandle(parent, name, x1, y1, x2, y2, extraAttrs){
+  const line = svgEl('line', {
+    class: 'sel-handle sel-handle-edge', 'data-handle': name, x1, y1, x2, y2,
+  });
+  if (extraAttrs) for (const k in extraAttrs) line.setAttribute(k, extraAttrs[k]);
+  parent.appendChild(line);
+}
 function renderSelectionOverlay(){
   gOverlay.innerHTML = '';
   renderActiveAlignGuides();
@@ -730,20 +806,23 @@ function renderSelectionOverlay(){
       const hs = 5.5 / (PX_PER_UNIT * z);
       const scaleX = Math.max(0.0001, Math.abs(shape.scaleX || 1));
       const scaleY = Math.max(0.0001, Math.abs(shape.scaleY || 1));
-      const handleWidth = hs * 2 / scaleX;
-      const handleHeight = hs * 2 / scaleY;
 
-      const points = {
-        nw: [lb.x, lb.y], n: [lb.x+lb.width/2, lb.y], ne: [lb.x+lb.width, lb.y],
-        w:  [lb.x, lb.y+lb.height/2],                  e:  [lb.x+lb.width, lb.y+lb.height/2],
-        sw: [lb.x, lb.y+lb.height], s: [lb.x+lb.width/2, lb.y+lb.height], se: [lb.x+lb.width, lb.y+lb.height],
+      // Edges first, corners after — the invisible edge hit-strips reach all the way to
+      // the corners, so corners need to be on top in the DOM to win hit-testing right at
+      // the shared corner point (otherwise grabbing a corner could sometimes trigger a
+      // single-axis edge drag instead of the intended diagonal resize).
+      appendEdgeHandle(g, 'n', lb.x, lb.y, lb.x+lb.width, lb.y, { 'data-id': shape.id });
+      appendEdgeHandle(g, 's', lb.x, lb.y+lb.height, lb.x+lb.width, lb.y+lb.height, { 'data-id': shape.id });
+      appendEdgeHandle(g, 'w', lb.x, lb.y, lb.x, lb.y+lb.height, { 'data-id': shape.id });
+      appendEdgeHandle(g, 'e', lb.x+lb.width, lb.y, lb.x+lb.width, lb.y+lb.height, { 'data-id': shape.id });
+      // Only the 4 corners get a discrete round handle (diagonal/uniform resize).
+      const corners = {
+        nw: [lb.x, lb.y], ne: [lb.x+lb.width, lb.y],
+        sw: [lb.x, lb.y+lb.height], se: [lb.x+lb.width, lb.y+lb.height],
       };
-      for (const name in points){
-        const [px,py] = points[name];
-        g.appendChild(svgEl('rect', {
-          class:'sel-handle', 'data-handle':name, 'data-id':shape.id,
-          x: px-handleWidth/2, y: py-handleHeight/2, width: handleWidth, height: handleHeight,
-        }));
+      for (const name in corners){
+        const [px,py] = corners[name];
+        appendCornerHandle(g, name, px, py, hs, scaleX, scaleY, shape.id, { 'data-id': shape.id });
       }
       // rotate handle
       const rOffset = 22 / (PX_PER_UNIT * z * scaleY);
@@ -818,17 +897,14 @@ function renderSelectionOverlay(){
       });
       gOverlay.appendChild(box);
       const hs = 5.5 / (PX_PER_UNIT * z);
-      const points = {
-        nw:[minX,minY], n:[(minX+maxX)/2,minY], ne:[maxX,minY],
-        w:[minX,(minY+maxY)/2], e:[maxX,(minY+maxY)/2],
-        sw:[minX,maxY], s:[(minX+maxX)/2,maxY], se:[maxX,maxY],
-      };
-      for (const name in points){
-        const [px,py] = points[name];
-        gOverlay.appendChild(svgEl('rect', {
-          class:'sel-handle', 'data-handle':name, 'data-multi-handle':'1',
-          x:px-hs, y:py-hs, width:hs*2, height:hs*2,
-        }));
+      appendEdgeHandle(gOverlay, 'n', minX, minY, maxX, minY, { 'data-multi-handle':'1' });
+      appendEdgeHandle(gOverlay, 's', minX, maxY, maxX, maxY, { 'data-multi-handle':'1' });
+      appendEdgeHandle(gOverlay, 'w', minX, minY, minX, maxY, { 'data-multi-handle':'1' });
+      appendEdgeHandle(gOverlay, 'e', maxX, minY, maxX, maxY, { 'data-multi-handle':'1' });
+      const corners = { nw:[minX,minY], ne:[maxX,minY], sw:[minX,maxY], se:[maxX,maxY] };
+      for (const name in corners){
+        const [px,py] = corners[name];
+        appendCornerHandle(gOverlay, name, px, py, hs, 1, 1, null, { 'data-multi-handle':'1' });
       }
     }
   }

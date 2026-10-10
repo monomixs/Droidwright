@@ -16,6 +16,8 @@ function init(){
   wirePresetShapesPopover();
   wireDocSettings();
   wireSelectionPanels();
+  wireCustomColorPickers();
+  wireCustomDropdowns();
   wireLayerList();
   wireMisc();
   wireHome();
@@ -36,4 +38,3 @@ if (document.readyState === 'loading'){
 } else {
   init();
 }
-

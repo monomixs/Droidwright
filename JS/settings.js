@@ -99,6 +99,14 @@ function wireDocSettings(){
   tintEl.addEventListener('input', () => { beginEdit(); state.doc.tint = tintEl.value; tintSwatch.style.background = tintEl.value; renderPreviewStrip(); });
   tintEl.addEventListener('change', () => { commitEdit(); renderAll(); });
   document.getElementById('btnClearTint').addEventListener('click', () => { doAction(() => { state.doc.tint = ''; }); syncDocSettingsUI(); });
+  attachColorSwatch(document.getElementById('tintSwatchWrap'), {
+    getAlpha: () => state.doc.alpha,
+    setAlpha: (a, commit) => {
+      alphaEl.value = Math.round(a * 100);
+      alphaEl.dispatchEvent(new Event(commit ? 'change' : 'input', { bubbles: true }));
+    },
+    extraSafeSelector: '#docAlpha',
+  });
 
   alphaEl.addEventListener('input', () => {
     beginEdit();
@@ -148,6 +156,14 @@ function wireDocSettings(){
   if (bgColorEl){
     bgColorEl.addEventListener('input', () => setBgColor(bgColorEl.value));
     bgColorEl.addEventListener('change', () => { commitEdit(); renderAll(); });
+    attachColorSwatch(document.getElementById('docBgSwatchWrap'), {
+      getAlpha: () => (state.doc.backgroundOpacity != null ? state.doc.backgroundOpacity : 1),
+      setAlpha: (a, commit) => {
+        bgAlphaEl.value = Math.round(a * 100);
+        bgAlphaEl.dispatchEvent(new Event(commit ? 'change' : 'input', { bubbles: true }));
+      },
+      extraSafeSelector: '#docBgHex, #docBgAlpha',
+    });
   }
 
   if (bgHexEl){
@@ -900,6 +916,50 @@ const SETTINGS_SCHEMA = [
     items:[] },
 ];
 
+/* ---------------- hidden developer category (click the "Settings" title 10 times) ---------------- */
+const DEV_UNLOCKED_KEY = 'dw_dev_unlocked_v1';
+const DEV_CATEGORY = {
+  id:'developer', label:'Developer', icon:'<path d="m18 16 4-4-4-4M6 8l-4 4 4 4M14.5 4l-5 16"/>',
+  blurb:'Hidden debug tools — you found this by clicking "Settings" 10 times.',
+  items:[
+    { key:'devReopenWelcome', type:'action', label:'Welcome popup', hint:'Reopen the popup shown the first time Droidwright is opened.',
+      actionLabel:'Reopen welcome popup',
+      onAction: () => { closeSettings(); showWelcomeModal(); } },
+  ],
+};
+function isDevUnlocked(){
+  try { return localStorage.getItem(DEV_UNLOCKED_KEY) === '1'; } catch (e){ return false; }
+}
+function addDevCategoryIfMissing(){
+  if (!SETTINGS_SCHEMA.some((c) => c.id === 'developer')) SETTINGS_SCHEMA.push(DEV_CATEGORY);
+}
+// Click counter for the "Settings" dialog title: 10 clicks within the same short burst
+// unlocks the Developer category. Clicks more than 1.2s apart reset the count, so it
+// takes a deliberate rapid burst rather than accumulating by accident over a session.
+function wireSettingsTitleUnlock(){
+  const title = document.getElementById('settingsTitle');
+  if (!title || title.__devUnlockWired) return;
+  title.__devUnlockWired = true;
+  let count = 0, lastClick = 0;
+  title.addEventListener('click', () => {
+    if (isDevUnlocked()) return; // already unlocked, nothing left to do
+    const now = Date.now();
+    count = (now - lastClick > 1200) ? 1 : count + 1;
+    lastClick = now;
+    const remaining = 10 - count;
+    if (remaining <= 0){
+      count = 0;
+      try { localStorage.setItem(DEV_UNLOCKED_KEY, '1'); } catch (e){ /* private browsing, etc. */ }
+      addDevCategoryIfMissing();
+      buildSettingsNav();
+      selectSettingsCategory('developer');
+      showToast('Developer options unlocked');
+    } else if (remaining <= 3){
+      showToast(remaining === 1 ? '1 more click to unlock developer options' : remaining + ' more clicks to unlock developer options');
+    }
+  });
+}
+
 /* ---------------- dialog: controls ---------------- */
 const settingsUI = { open:false, activeId:'appearance', opener:null, closeTimer:null, els:null, rows:[], searchQuery:'' };
 
@@ -961,6 +1021,14 @@ const SETTING_CONTROLS = {
     control.append(input, out);
     return { input, sync: () => { if (String(input.value) !== String(settings[item.key])) input.value = settings[item.key]; out.textContent = item.format(settings[item.key]); } };
   },
+  action(control, item){
+    const btn = document.createElement('button');
+    btn.type = 'button'; btn.className = 'btn';
+    btn.textContent = item.actionLabel;
+    btn.addEventListener('click', () => item.onAction());
+    control.appendChild(btn);
+    return { input: null, sync: () => {} };
+  },
   dataTransfer(control){
     const wrap = document.createElement('div');
     wrap.className = 'data-transfer-actions';
@@ -1005,6 +1073,7 @@ const SETTING_CONTROLS = {
     hex.type = 'text'; hex.className = 'hexinput'; hex.id = id; hex.maxLength = 7; hex.spellcheck = false; hex.autocomplete = 'off';
     picker.addEventListener('input', () => commitFromDialog(item.key, picker.value));
     hex.addEventListener('change', () => commitFromDialog(item.key, hex.value));
+    attachColorSwatch(swatch, { extraSafeSelector: '#' + id }); // no alpha — no paired opacity field for these settings
     field.append(swatch, hex);
     control.appendChild(field);
     return { input: hex, sync: () => {
@@ -1037,6 +1106,7 @@ const SETTING_CONTROLS = {
     picker.addEventListener('input', () => commitFromDialog(item.key, picker.value));
     const hex = document.createElement('input');
     hex.type = 'text'; hex.className = 'hexinput'; hex.id = id; hex.maxLength = 7; hex.spellcheck = false; hex.autocomplete = 'off';
+    attachColorSwatch(custom, { extraSafeSelector: '#' + id }); // no alpha, per the request — accent color stays flat
     hex.addEventListener('change', () => commitFromDialog(item.key, hex.value));
     control.append(group, sep, custom, hex);
     return { input: hex, sync: () => {
@@ -1111,7 +1181,7 @@ function selectSettingsCategory(id, focusTab){
   const { pane, title, desc, reset, nav } = settingsUI.els;
   title.textContent = cat.label;
   desc.textContent = cat.blurb;
-  reset.hidden = false;   // a search result view hides it (see renderSettingsSearchResults); undo that here
+  reset.hidden = cat.id === 'developer';   // a search result view hides it (see renderSettingsSearchResults); undo that here — and the Developer tab has no real settings to restore
   reset.textContent = 'Restore ' + cat.label + ' defaults';
   pane.setAttribute('aria-labelledby', 'settings-tab-' + cat.id);
   nav.querySelectorAll('.settings-tab').forEach((tab) => {
@@ -1290,7 +1360,9 @@ function wireSettingsDialog(){
     title: $('settingsPaneTitle'), desc: $('settingsPaneDesc'), reset: $('settingsReset'),
     search: $('settingsSearchInput'), searchClear: $('settingsSearchClear'),
   };
+  if (isDevUnlocked()) addDevCategoryIfMissing();
   buildSettingsNav();
+  wireSettingsTitleUnlock();
   wireSettingsSearch();
   $('settingsClose').addEventListener('click', closeSettings);
   $('settingsDone').addEventListener('click', closeSettings);
@@ -1349,4 +1421,3 @@ function initSettings(){
   document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'hidden') flushAutosave(); });
   restoreLastTool();
 }
-

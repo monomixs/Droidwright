@@ -260,6 +260,34 @@ function deleteProject(id){
   }
 }
 
+function deleteSelectedHomeProjects(){
+  const projects = readProjects();
+  const selected = validHomeSelection(projects);
+  if (!selected.length) return;
+  const commitDelete = () => {
+    const remaining = readProjects().filter(item => !selected.includes(item.id));
+    writeProjects(remaining);
+    persistNormalizedHomeGroups(readHomeGroups(), remaining);
+    if (selected.includes(state.projectId)) state.projectId = null;
+    homeState.selectedIds = [];
+    renderHome();
+  };
+  if (settings.confirmDelete){
+    const single = selected.length === 1 ? projects.find(p => p.id === selected[0]) : null;
+    showConfirmModal({
+      title: selected.length === 1 ? 'Delete icon?' : `Delete ${selected.length} icons?`,
+      message: selected.length === 1
+        ? `Delete "${(single && single.name) || 'Untitled icon'}"? This cannot be undone.`
+        : `Delete ${selected.length} selected icons? This cannot be undone.`,
+      confirmLabel: 'Delete',
+      danger: true,
+      onConfirm: commitDelete,
+    });
+  } else {
+    commitDelete();
+  }
+}
+
 /* ---- home screen: search / sort / live stats ---- */
 const homeState = { query:'', sort:'recent', selectedIds:[] };
 // Tracks which group's popup is currently open (and its live intro/grid elements) so
@@ -294,6 +322,8 @@ function refreshHomeSelectionUI(){
   DOM.homeSelectionCount.textContent = `${selected.length} selected`;
   DOM.homeGroupSelected.disabled = selected.length < 2;
   DOM.homeGroupSelected.hidden = selected.length < 2;
+  DOM.homeDeleteSelected.disabled = selected.length === 0;
+  DOM.homeDeleteSelected.hidden = selected.length === 0;
   DOM.projectGrid.querySelectorAll('.project-card[data-project-id]').forEach((card) => {
     const isSelected = selected.includes(card.dataset.projectId);
     card.classList.toggle('selected', isSelected);
@@ -583,6 +613,8 @@ function renderHome(){
   DOM.homeSelectionCount.textContent = `${selected.length} selected`;
   DOM.homeGroupSelected.disabled = selected.length < 2;
   DOM.homeGroupSelected.hidden = selected.length < 2;
+  DOM.homeDeleteSelected.disabled = selected.length === 0;
+  DOM.homeDeleteSelected.hidden = selected.length === 0;
 
   const isEmpty = all.length === 0;
   const isNoResults = !isEmpty && list.length === 0;

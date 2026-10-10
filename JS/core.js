@@ -251,6 +251,7 @@ function cacheDom(){
   DOM.projectGrid = document.getElementById('project-grid');
   DOM.homeProjectCount = document.getElementById('homeProjectCount');
   DOM.homeGroupSelected = document.getElementById('homeGroupSelected');
+  DOM.homeDeleteSelected = document.getElementById('homeDeleteSelected');
   DOM.homeSelectionCount = document.getElementById('homeSelectionCount');
   DOM.homeImportProject = document.getElementById('homeImportProject');
   DOM.homeNewProject = document.getElementById('homeNewProject');
@@ -387,6 +388,11 @@ function applyZoomAt(newZoom, clientX, clientY){
   // Same for the hover outline — its margin is computed in on-screen pixels, so it
   // needs to be recalculated at the new zoom too, not just left at its old size.
   if (state.hoveredShapeId) updateHoverOutline(state.hoveredShapeId);
+  // The grid and keyline guide line widths are computed from the current zoom too
+  // (so they stay a constant on-screen thickness), so they need to be redrawn on
+  // every zoom change as well — otherwise they're stuck at whatever width was
+  // computed the last time something else happened to trigger a re-render.
+  renderArtboardAndGrid();
 }
 
 function maybeSnap(v){
@@ -394,4 +400,3 @@ function maybeSnap(v){
   const s = state.grid.snapSize || 1;
   return Math.round(v / s) * s;
 }
-

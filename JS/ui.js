@@ -460,6 +460,7 @@ function wireHome(){
   DOM.homeNewProject.addEventListener('click', createProjectFlow);
   DOM.homeImportProject.addEventListener('click', () => document.getElementById('fileImportSvg').click());
   DOM.homeGroupSelected.addEventListener('click', createHomeGroupFromSelection);
+  DOM.homeDeleteSelected.addEventListener('click', deleteSelectedHomeProjects);
   if (DOM.homeInfoBtn) DOM.homeInfoBtn.addEventListener('click', showAboutModal);
   if (DOM.homeChangelogBtn) DOM.homeChangelogBtn.addEventListener('click', showChangelogModal);
   DOM.emptyNewProject.addEventListener('click', createProjectFlow);
@@ -576,7 +577,7 @@ let __modalCloseTimer = null;
 function resetModalWidthVariants(){
   if (__modalCloseTimer){ clearTimeout(__modalCloseTimer); __modalCloseTimer = null; }
   homeGroupModalState = null;
-  DOM.modalBackdrop.classList.remove('quickview-open', 'welcome-open', 'new-project-open', 'home-group-open');
+  DOM.modalBackdrop.classList.remove('quickview-open', 'welcome-open', 'new-project-open', 'home-group-open', 'changelog-open');
 }
 function showModal(opts){
   resetModalWidthVariants();
@@ -829,19 +830,8 @@ function showWelcomeModal(){
         <p class="hero-sub">Build Android vector drawables on a real dp grid, then export clean XML — every project saves straight to this device, nothing leaves it.</p>
       </div>
       <div class="welcome-modal-visual" aria-hidden="true">
-        <svg class="keyline-diagram hero-blueprint" viewBox="0 0 200 200" focusable="false">
-          <line x1="100" y1="16" x2="100" y2="184" class="bp-cross"/>
-          <line x1="16" y1="100" x2="184" y2="100" class="bp-cross"/>
-          <rect x="30" y="44" width="140" height="112" class="bp-rect"/>
-          <rect x="44" y="30" width="112" height="140" class="bp-rect"/>
-          <rect x="37" y="37" width="126" height="126" class="bp-square"/>
-          <circle cx="100" cy="100" r="70" class="bp-circle"/>
-          <rect x="16" y="16" width="168" height="168" rx="16" class="bp-frame"/>
-          <circle cx="16" cy="16" r="2" class="bp-dot"/><circle cx="184" cy="16" r="2" class="bp-dot"/>
-          <circle cx="16" cy="184" r="2" class="bp-dot"/><circle cx="184" cy="184" r="2" class="bp-dot"/>
-          <circle cx="100" cy="100" r="2" class="bp-dot"/>
-        </svg>
-        <p class="hero-caption">24dp keyline guide</p>
+        <svg class="welcome-logo" viewBox="56 56 400 400" xmlns="http://www.w3.org/2000/svg" aria-hidden="true" focusable="false"><g transform="translate(256 304.435) translate(-256 -304.435)"><path d="M173.731,173.983 L338.269,173.983 C393.497,173.983 438.269,218.754 438.269,273.983 L438.269,379.887 C438.269,410.263 413.644,434.887 383.269,434.887 L128.731,434.887 C98.356,434.887 73.731,410.263 73.731,379.887 L73.731,273.983 C73.731,218.754 118.503,173.983 173.731,173.983 Z" fill="#000000" stroke="#5EE1A0" stroke-width="30" stroke-linecap="round" stroke-linejoin="round"/></g><g transform="translate(183.488 322.924) scale(2.293 2.293) translate(-226 -258)"><path d="M216,258 C216,252.477 220.477,248 226,248 C231.523,248 236,252.477 236,258 C236,263.523 231.523,268 226,268 C220.477,268 216,263.523 216,258 Z" fill="#000000" stroke="#5ee1a0" stroke-width="5"/></g><g transform="translate(328.512 322.924) scale(2.293 2.293) translate(-286 -258)"><path d="M276,258 C276,252.477 280.477,248 286,248 C291.523,248 296,252.477 296,258 C296,263.523 291.523,268 286,268 C280.477,268 276,263.523 276,258 Z" fill="#000000" stroke="#5EE1A0" stroke-width="5"/></g><g><path d="M362.544,172.154 L405.193,105.468" fill="none" stroke="#5ee1a0" stroke-width="25"/></g><g><path d="M160.245,178.897 L106.807,105.468" fill="none" stroke="#5ee1a0" stroke-width="25"/></g><g transform="translate(414.634 96.027) scale(2.144 2.144) translate(-334 -142)"><path d="M322,142 C322,135.373 327.373,130 334,130 C340.627,130 346,135.373 346,142 C346,148.627 340.627,154 334,154 C327.373,154 322,148.627 322,142 Z" fill="#0e1113" stroke="#5ee1a0" stroke-width="6"/></g><g transform="translate(97.366 96.027) scale(2.144 2.144) translate(-334 -142)"><path d="M322,142 C322,135.373 327.373,130 334,130 C340.627,130 346,135.373 346,142 C346,148.627 340.627,154 334,154 C327.373,154 322,148.627 322,142 Z" fill="#0e1113" stroke="#5ee1a0" stroke-width="6"/></g><g><path d="M145.283,284.719 L221.693,284.719 L221.693,361.13 L145.283,361.13 Z" fill="none" stroke="#5EE1A0" stroke-width="1.5"/></g><g><path d="M139.994,284.15 C139.994,281.543 142.107,279.43 144.714,279.43 C147.321,279.43 149.435,281.543 149.435,284.15 C149.435,286.757 147.321,288.871 144.714,288.871 C142.107,288.871 139.994,286.757 139.994,284.15 Z" fill="#000000" stroke="#5EE1A0" stroke-width="2"/></g><g><path d="M217.985,284.15 C217.985,281.543 220.098,279.43 222.705,279.43 C225.312,279.43 227.425,281.543 227.425,284.15 C227.425,286.757 225.312,288.871 222.705,288.871 C220.098,288.871 217.985,286.757 217.985,284.15 Z" fill="#000000" stroke="#5EE1A0" stroke-width="2"/></g><g><path d="M217.985,362.141 C217.985,359.534 220.098,357.421 222.705,357.421 C225.312,357.421 227.425,359.534 227.425,362.141 C227.425,364.748 225.312,366.861 222.705,366.861 C220.098,366.861 217.985,364.748 217.985,362.141 Z" fill="#000000" stroke="#5EE1A0" stroke-width="2"/></g><g><path d="M139.994,362.141 C139.994,359.534 142.107,357.421 144.714,357.421 C147.321,357.421 149.435,359.534 149.435,362.141 C149.435,364.748 147.321,366.861 144.714,366.861 C142.107,366.861 139.994,364.748 139.994,362.141 Z" fill="#000000" stroke="#5EE1A0" stroke-width="2"/></g><g transform="translate(232.677 377.69) rotate(16.49) scale(3.303 3.303) translate(-17.505 -17.52)"><path d="M20.9597 17.84L19.3297 18.39C18.8797 18.54 18.5197 18.89 18.3697 19.35L17.8197 20.98C17.3497 22.39 15.3697 22.36 14.9297 20.95L13.0797 15C12.7197 13.82 13.8097 12.72 14.9797 13.09L20.9397 14.94C22.3397 15.38 22.3597 17.37 20.9597 17.84Z" fill="#5EE1A0"/></g></svg>
+        <p class="hero-caption">Made in Droidwright</p>
       </div>
     </div>`;
   DOM.modalFoot.innerHTML = '';
@@ -1068,7 +1058,9 @@ function wireTopbar(){
   document.getElementById('btnExportXml2').addEventListener('click', downloadXmlFile);
 }
 function wireRail(){
-  document.querySelectorAll('#rail [title]').forEach(button => {
+  // Not just #rail: the top bar's Undo/Redo/Settings buttons also declare a bare data-tip
+  // with a title, which used to leave their custom tooltip with no text at all.
+  document.querySelectorAll('#rail [title], [data-tip][title]').forEach(button => {
     if (!button.dataset.tip) button.dataset.tip = button.getAttribute('title');
     button.removeAttribute('title');
   });
@@ -1341,11 +1333,26 @@ function wireContextMenu(){
     });
 
     menu.hidden = false;
-    const menuWidth = 230, menuHeight = Math.min(500, window.innerHeight - 30);
-    const x = Math.min(e.clientX, window.innerWidth - menuWidth - 12);
-    const y = Math.min(e.clientY, window.innerHeight - menuHeight - 12);
-    menu.style.left = Math.max(10, x) + 'px';
-    menu.style.top = Math.max(10, y) + 'px';
+    // Same technique as the "more tools" rail flyout: measure the menu's own real
+    // rendered size (its CSS already caps max-height to the viewport with a scrollbar
+    // for very short windows) and clamp/flip it to fit, rather than assuming a fixed
+    // width/height — so a longer set of enabled items, a narrow window, or right-clicking
+    // near an edge can never push part of the menu off-screen.
+    positionContextMenu(e.clientX, e.clientY);
+  });
+  function positionContextMenu(x, y){
+    // A zero-size "anchor rect" at the cursor point — positionFloatingPanel treats its
+    // bottom/top as where the panel would open below/above, which for a context menu is
+    // just the click point itself (gap:0 so the menu's corner lands exactly on the cursor
+    // when there's room).
+    positionFloatingPanel(menu, { left: x, right: x, top: y, bottom: y }, { margin: 10, gap: 0 });
+  }
+  // Keeps the open menu fully on-screen if the window is resized while it's showing —
+  // the more-tools panel does the same.
+  window.addEventListener('resize', () => {
+    if (menu.hidden) return;
+    const r = menu.getBoundingClientRect();
+    positionContextMenu(r.left, r.top);
   });
 
   menu.addEventListener('click', (e) => {
@@ -1530,6 +1537,7 @@ function wireExportPopover(){
   });
 
   window.addEventListener('pointerdown', (e) => {
+    if (e.target.closest('.custom-dropdown-list, .color-picker-popover')) return;
     if (!popover.hidden && !popover.contains(e.target) && e.target !== btn && !btn.contains(e.target)){
       closePopover();
     }
@@ -1651,24 +1659,40 @@ function updateHoverOutline(shapeId){
   }
 }
 function appendHoverRing(shape){
-  // Text (and anything converted from text — see convertShapeToPathShape) traces as a
-  // plain rectangle instead of the actual letterform outlines: those are typically dozens
-  // of small subpaths, several with hole/counter contours (the inside of an "o", "e", "a"),
-  // and the ring-via-stroke technique below strokes every subpath individually — so a real
-  // glyph trace also draws a spurious extra ring around the inside of every letter's
-  // counter, on top of the real outer ring. A rectangle sidesteps that entirely. It's built
-  // from visualHandleBBox (the same stroke-aware box the selection handles use) rather than
-  // the raw fill-only bounds, so it fully encloses the text even when a stroke is applied,
-  // and still follows the shape's rotation/scale via the same transform used to draw it.
-  const isTextLike = shape.type === 'text' || shape.__fromText;
-  let d, extraTransform = '';
+  // Text (and anything converted from text — see convertShapeToPathShape) gets the exact
+  // same box the selection handles draw (class="sel-outline": a plain rect at
+  // visualHandleBBox, fixed stroke-width, vector-effect:non-scaling-stroke) — just without
+  // the actual handle circles/lines, since this is only a hover preview, not a selection.
+  // No masking/ring math at all here; it's pixel-identical to that box by construction.
+  //
+  // A shape imported from SVG and flattened from a <text> element lands here as a plain
+  // 'path' with no __fromText flag (that flag is only set by our own in-app "convert to
+  // path" action) — svg-import.js doesn't handle <text> at all, so by the time one
+  // reaches this app it's already been outlined into a <path> by whatever tool exported
+  // the SVG, indistinguishable at the data level from a hand-drawn shape. It would
+  // otherwise fall through to the ring-via-stroke technique below, which only produces a
+  // correct single outer ring for a shape with ONE subpath. The glitch isn't really about
+  // "many" subpaths — it's that the ring-via-stroke technique strokes every subpath on its
+  // own, so the moment a shape has a hole (a letter's counter, like the inside of an "o" or
+  // "e"), that hole's own boundary gets an unwanted extra ring too, since the mask only
+  // hides the part of each stroke that overlaps the shape's filled area, and a hole isn't
+  // filled. A single letter with a counter is already 2 subpaths, so this has to trigger on
+  // ANY multi-subpath shape, not just unusually complex ones — a hand-drawn shape with a
+  // hole in it will also fall back to a plain rectangle here now, trading away the nicer
+  // hugging ring for always being correct rather than only sometimes.
+  const subpathCount = shape.type === 'path' && shape.rawD ? (shape.rawD.match(/M/gi) || []).length : 0;
+  const isTextLike = shape.type === 'text' || shape.__fromText || subpathCount > 1;
   if (isTextLike){
     const lb = visualHandleBBox(shape);
-    d = `M${fmt(lb.x)},${fmt(lb.y)} L${fmt(lb.x+lb.width)},${fmt(lb.y)} L${fmt(lb.x+lb.width)},${fmt(lb.y+lb.height)} L${fmt(lb.x)},${fmt(lb.y+lb.height)} Z`;
-    extraTransform = shapeGroupTransformStr(shape);
-  } else {
-    d = getShapeTransformedPath(shape);
+    const g = svgEl('g', { transform: shapeGroupTransformStr(shape) });
+    g.appendChild(svgEl('rect', {
+      class: 'sel-outline',
+      x: lb.x, y: lb.y, width: lb.width, height: lb.height,
+    }));
+    gHoverOutline.appendChild(g);
+    return;
   }
+  const d = getShapeTransformedPath(shape);
   if (!d) return;
 
   // Trace a thin ring that hugs the OUTSIDE of the shape's real visible silhouette
@@ -1682,8 +1706,8 @@ function appendHoverRing(shape){
   // For the rectangle case, the shape's real stroke is already folded into visualHandleBBox
   // above, so the ring here only needs its own small cosmetic margin, not the stroke width
   // again on top.
-  const strokeExtent = (!isTextLike && shape.strokeEnabled) ? Math.max(0, Number(shape.strokeWidth) || 0) : 0;
-  const hasFill = isTextLike ? true : !!shape.fillEnabled;
+  const strokeExtent = shape.strokeEnabled ? Math.max(0, Number(shape.strokeWidth) || 0) : 0;
+  const hasFill = !!shape.fillEnabled;
   const hasStroke = strokeExtent > 0;
   const cap = shape.strokeLineCap || 'round';
   const join = shape.strokeLineJoin || 'round';
@@ -1694,7 +1718,7 @@ function appendHoverRing(shape){
   const margin = 2.2 / (PX_PER_UNIT * z);
   const ringWidth = strokeExtent + margin * 2;
 
-  const b = isTextLike ? rotatedLocalRectStageBounds(shape, visualHandleBBox(shape)) : getShapeStageBounds(shape);
+  const b = getShapeStageBounds(shape);
   const pad = Math.max(ringWidth, 40);
   const maskId = 'hoverMask_' + shape.id;
 
@@ -1713,7 +1737,6 @@ function appendHoverRing(shape){
   mask.appendChild(svgEl('rect', { x: b.x - pad, y: b.y - pad, width: b.width + pad*2, height: b.height + pad*2, fill: 'white' }));
   mask.appendChild(svgEl('path', {
     d,
-    ...(extraTransform ? { transform: extraTransform } : {}),
     fill: hasFill ? 'black' : 'none',
     stroke: hasStroke ? 'black' : 'none',
     'stroke-width': strokeExtent,
@@ -1726,7 +1749,6 @@ function appendHoverRing(shape){
 
   gHoverOutline.appendChild(svgEl('path', {
     d, class: 'hover-outline-path',
-    ...(extraTransform ? { transform: extraTransform } : {}),
     'stroke-width': ringWidth,
     'stroke-linecap': cap,
     'stroke-linejoin': join,
@@ -1769,3 +1791,364 @@ function wireCanvasHoverOutline(){
   window.addEventListener('blur', () => { state.editIndividualHeld = false; });
 }
 
+
+/* =====================================================================================
+   Custom color picker + custom dropdown components — replace native <input type="color">
+   and native <select> across the app with app-styled popovers, so they render
+   consistently instead of falling back to the browser/OS's own picker UI.
+   ===================================================================================== */
+
+// Shared positioning routine for every floating popover added below (color picker,
+// dropdown list) — same technique as positionMoreToolsPanel in wireRail(): measure the
+// panel's own real rendered size (not a guessed constant) and clamp it fully inside the
+// viewport, flipping above the anchor instead of below it when there isn't room, so a
+// small window or an anchor sitting near an edge can never push the panel off-screen.
+function positionFloatingPanel(panel, anchorRect, opts){
+  opts = opts || {};
+  const margin = opts.margin != null ? opts.margin : 8;
+  const gap = opts.gap != null ? opts.gap : 6;
+  if (opts.matchWidth) panel.style.minWidth = opts.matchWidth + 'px';
+  const w = panel.offsetWidth, h = panel.offsetHeight;
+  const spaceBelow = window.innerHeight - anchorRect.bottom - gap - margin;
+  const spaceAbove = anchorRect.top - gap - margin;
+  const top = (spaceBelow >= h || spaceBelow >= spaceAbove)
+    ? anchorRect.bottom + gap
+    : anchorRect.top - gap - h;
+  panel.style.top = Math.max(margin, Math.min(top, window.innerHeight - h - margin)) + 'px';
+  panel.style.left = Math.max(margin, Math.min(anchorRect.left, window.innerWidth - w - margin)) + 'px';
+}
+
+/* ---------------- color conversion helpers (HSV, used by the picker's SV square) ---------------- */
+function hexToHsv(hex){
+  const { r, g, b } = hexToRgb(hex);
+  const rn = r / 255, gn = g / 255, bn = b / 255;
+  const max = Math.max(rn, gn, bn), min = Math.min(rn, gn, bn), d = max - min;
+  let h = 0;
+  if (d){
+    if (max === rn) h = ((gn - bn) / d) % 6;
+    else if (max === gn) h = (bn - rn) / d + 2;
+    else h = (rn - gn) / d + 4;
+    h *= 60; if (h < 0) h += 360;
+  }
+  return { h, s: max === 0 ? 0 : d / max, v: max };
+}
+function hsvToHex(h, s, v){
+  const c = v * s, x = c * (1 - Math.abs((h / 60) % 2 - 1)), m = v - c;
+  let r = 0, g = 0, b = 0;
+  if (h < 60){ r = c; g = x; } else if (h < 120){ r = x; g = c; } else if (h < 180){ g = c; b = x; }
+  else if (h < 240){ g = x; b = c; } else if (h < 300){ r = x; b = c; } else { r = c; b = x; }
+  const to = (n) => clamp(Math.round((n + m) * 255), 0, 255).toString(16).padStart(2, '0');
+  return '#' + to(r) + to(g) + to(b);
+}
+
+/* ---------------- custom color picker popover ---------------- */
+let __activeColorPicker = null;
+function closeActiveColorPicker(commit){
+  if (!__activeColorPicker) return;
+  const cp = __activeColorPicker;
+  __activeColorPicker = null;
+  if (commit && cp.onCommit) cp.onCommit(cp.hex, cp.alpha);
+  cp.el.remove();
+  window.removeEventListener('resize', cp.reposition);
+  document.removeEventListener('mousedown', cp.onOutside, true);
+  document.removeEventListener('keydown', cp.onKey, true);
+}
+// anchorEl: element the popover is positioned against (the swatch).
+// config: { hex, alpha (0-1, only used if showAlpha), showAlpha, onInput(hex,alpha) —
+// fired continuously while dragging/typing, onCommit(hex,alpha) — fired once on release/
+// blur/close, matching a native color input's 'input' vs 'change' semantics. }
+function openColorPicker(anchorEl, config){
+  closeActiveColorPicker(true);
+  closeActiveDropdown();
+  const showAlpha = !!config.showAlpha;
+  let { h, s, v } = hexToHsv(config.hex || '#000000');
+  let alpha = config.alpha != null ? config.alpha : 1;
+
+  const el = document.createElement('div');
+  el.className = 'color-picker-popover';
+  el.innerHTML = `
+    <div class="cp-sv"><div class="cp-sv-white"></div><div class="cp-sv-black"></div><div class="cp-sv-thumb"></div></div>
+    <div class="cp-slider cp-hue"><div class="cp-slider-thumb"></div></div>
+    ${showAlpha ? '<div class="cp-slider cp-alpha"><div class="cp-alpha-fill"></div><div class="cp-slider-thumb"></div></div>' : ''}
+    <div class="cp-fields">
+      <div class="cp-hex-wrap"><span>#</span><input type="text" class="hexinput cp-hex" maxlength="6" spellcheck="false" autocomplete="off"></div>
+      ${showAlpha ? '<input type="text" class="hexinput cp-alpha-num" maxlength="4" spellcheck="false" autocomplete="off">' : ''}
+    </div>
+  `;
+  document.body.appendChild(el);
+
+  const svEl = el.querySelector('.cp-sv');
+  const svThumb = el.querySelector('.cp-sv-thumb');
+  const hueEl = el.querySelector('.cp-hue');
+  const hueThumb = hueEl.querySelector('.cp-slider-thumb');
+  const alphaEl = el.querySelector('.cp-alpha');
+  const alphaFill = el.querySelector('.cp-alpha-fill');
+  const alphaThumb = alphaEl ? alphaEl.querySelector('.cp-slider-thumb') : null;
+  const hexInput = el.querySelector('.cp-hex');
+  const alphaNumInput = el.querySelector('.cp-alpha-num');
+
+  const currentHex = () => hsvToHex(h, s, v);
+  const cpState = { hex: currentHex(), alpha };
+
+  function render(){
+    const hueHex = hsvToHex(h, 1, 1);
+    svEl.style.background = hueHex;
+    svThumb.style.left = (s * 100) + '%';
+    svThumb.style.top = ((1 - v) * 100) + '%';
+    svThumb.style.background = currentHex();
+    hueThumb.style.left = (h / 360 * 100) + '%';
+    if (document.activeElement !== hexInput) hexInput.value = currentHex().slice(1).toUpperCase();
+    if (alphaEl){
+      alphaFill.style.background = `linear-gradient(to right, transparent, ${currentHex()})`;
+      alphaThumb.style.left = (alpha * 100) + '%';
+      if (document.activeElement !== alphaNumInput) alphaNumInput.value = Math.round(alpha * 100) + '%';
+    }
+  }
+  render();
+
+  function emitInput(){
+    cpState.hex = currentHex(); cpState.alpha = alpha;
+    if (__activeColorPicker){ __activeColorPicker.hex = cpState.hex; __activeColorPicker.alpha = cpState.alpha; }
+    if (config.onInput) config.onInput(cpState.hex, showAlpha ? alpha : undefined);
+  }
+  function emitCommit(){
+    if (config.onCommit) config.onCommit(cpState.hex, showAlpha ? alpha : undefined);
+  }
+
+  svEl.addEventListener('pointerdown', (e) => {
+    e.preventDefault();
+    const rect = svEl.getBoundingClientRect();
+    const move = (ev) => {
+      s = clamp((ev.clientX - rect.left) / rect.width, 0, 1);
+      v = 1 - clamp((ev.clientY - rect.top) / rect.height, 0, 1);
+      render(); emitInput();
+    };
+    const up = (ev) => { move(ev); window.removeEventListener('pointermove', move); window.removeEventListener('pointerup', up); emitCommit(); };
+    move(e);
+    window.addEventListener('pointermove', move);
+    window.addEventListener('pointerup', up);
+  });
+  function wireSlider(trackEl, onMove){
+    trackEl.addEventListener('pointerdown', (e) => {
+      e.preventDefault();
+      const rect = trackEl.getBoundingClientRect();
+      const move = (ev) => { onMove(clamp((ev.clientX - rect.left) / rect.width, 0, 1)); render(); emitInput(); };
+      const up = (ev) => { move(ev); window.removeEventListener('pointermove', move); window.removeEventListener('pointerup', up); emitCommit(); };
+      move(e);
+      window.addEventListener('pointermove', move);
+      window.addEventListener('pointerup', up);
+    });
+  }
+  wireSlider(hueEl, (p) => { h = p * 360; });
+  if (alphaEl) wireSlider(alphaEl, (p) => { alpha = p; });
+
+  hexInput.addEventListener('change', () => {
+    const val = hexInput.value.trim().replace(/^#/, '');
+    if (/^[0-9a-fA-F]{6}$/.test(val)){
+      const hsv = hexToHsv('#' + val); h = hsv.h; s = hsv.s; v = hsv.v;
+      render(); emitInput(); emitCommit();
+    } else render();
+  });
+  if (alphaNumInput){
+    alphaNumInput.addEventListener('change', () => {
+      const n = parseFloat(alphaNumInput.value);
+      if (!isNaN(n)){ alpha = clamp(n / 100, 0, 1); render(); emitInput(); emitCommit(); }
+      else render();
+    });
+  }
+
+  function reposition(){ positionFloatingPanel(el, anchorEl.getBoundingClientRect(), { margin: 10, gap: 8 }); }
+  reposition();
+  window.addEventListener('resize', reposition);
+
+  function onOutside(e){
+    if (el.contains(e.target)) return;
+    if (e.target === anchorEl || anchorEl.contains(e.target)) return;
+    // The app's own pre-existing hex/opacity text fields sit right next to the swatch,
+    // outside this popover — clicking into one of those to type or select text is a
+    // normal, expected interaction with the same color, not a "click away", so it
+    // shouldn't close the picker either.
+    if (config.extraSafeSelector && e.target.closest(config.extraSafeSelector)) return;
+    closeActiveColorPicker(true);
+  }
+  function onKey(e){ if (e.key === 'Escape') closeActiveColorPicker(true); }
+  setTimeout(() => {
+    document.addEventListener('mousedown', onOutside, true);
+    document.addEventListener('keydown', onKey, true);
+  }, 0);
+
+  __activeColorPicker = { el, onCommit: config.onCommit, hex: cpState.hex, alpha: cpState.alpha, reposition, onOutside, onKey };
+}
+
+// Wires a swatch (the `<span class="swatch">` wrapper around a native
+// `<input type="color">`) to open the custom picker instead of the browser's native one.
+// The native input is kept in the DOM as the actual value/event source — nothing else
+// in the app has to change — it's just made non-interactive and hidden, and the custom
+// picker sets its .value and dispatches real 'input'/'change' events on it.
+function attachColorSwatch(swatchEl, opts){
+  opts = opts || {};
+  const nativeInput = swatchEl.querySelector('input[type=color]');
+  const chip = swatchEl.querySelector('i');
+  if (!nativeInput || !chip) return;
+  nativeInput.style.pointerEvents = 'none';
+  nativeInput.tabIndex = -1;
+  swatchEl.addEventListener('click', (e) => {
+    e.preventDefault();
+    openColorPicker(swatchEl, {
+      hex: nativeInput.value || '#000000',
+      alpha: opts.getAlpha ? opts.getAlpha() : undefined,
+      showAlpha: !!opts.getAlpha,
+      extraSafeSelector: opts.extraSafeSelector,
+      onInput: (hex, alpha) => {
+        chip.style.background = hex;
+        nativeInput.value = hex;
+        nativeInput.dispatchEvent(new Event('input', { bubbles: true }));
+        if (opts.getAlpha && opts.setAlpha) opts.setAlpha(alpha, false);
+      },
+      onCommit: (hex, alpha) => {
+        nativeInput.value = hex;
+        nativeInput.dispatchEvent(new Event('change', { bubbles: true }));
+        if (opts.getAlpha && opts.setAlpha) opts.setAlpha(alpha, true);
+      },
+    });
+  });
+}
+
+// Delegated wiring for every fill/stroke/gradient-stop swatch in the shape properties
+// panel — this single listener covers all of them (including ones added later by a
+// panel re-render) rather than needing to re-wire swatches by hand after every render.
+// Alpha is shown automatically whenever a matching "...Opacity" field (the existing,
+// separate opacity slider each of these already has) is present alongside the color
+// field being edited — fillColor pairs with fillOpacity, XGradStopColor with
+// XGradStopOpacity, etc. — so this stays in sync with whatever fields actually exist
+// rather than a hardcoded list.
+//
+// Every callback below re-looks-up its color/opacity <input> by data-field (and
+// data-stop-index for gradient stops) at the moment it fires, rather than closing over
+// the elements found when the picker opened: a committed edit re-renders the whole
+// panel (DOM.selectionPanels.innerHTML gets replaced), which would otherwise detach
+// those original elements the instant the user made one change and kept adjusting
+// (dragging the hue slider, then typing a hex value, say) within the same picker
+// session — events dispatched on a detached element never reach anything.
+function wireCustomColorPickers(){
+  if (!DOM.selectionPanels) return;
+  const findColorInput = (field, stopIndex) => DOM.selectionPanels.querySelector(
+    `[data-field="${field}"][type=color]` + (stopIndex != null ? `[data-stop-index="${stopIndex}"]` : ''));
+  const findOpacityInput = (field, stopIndex) => DOM.selectionPanels.querySelector(
+    `[data-field="${field}"]` + (stopIndex != null ? `[data-stop-index="${stopIndex}"]` : ''));
+
+  DOM.selectionPanels.addEventListener('mousedown', (e) => {
+    const swatchAtClick = e.target.closest('.swatch');
+    if (!swatchAtClick) return;
+    const nativeAtClick = swatchAtClick.querySelector('input[type=color]');
+    if (!nativeAtClick) return;
+    e.preventDefault();
+
+    const colorField = nativeAtClick.dataset.field;
+    const stopIndex = nativeAtClick.dataset.stopIndex != null ? nativeAtClick.dataset.stopIndex : null;
+
+    // Close any picker that's already open before doing anything else: committing it
+    // can trigger a full panel re-render, which would detach swatchAtClick/nativeAtClick
+    // above. Re-resolve a fresh element afterwards instead of reusing those references.
+    closeActiveColorPicker(true);
+    const nativeInput = findColorInput(colorField, stopIndex);
+    const swatch = nativeInput ? nativeInput.closest('.swatch') : null;
+    if (!swatch) return;
+
+    const opacityField = colorField ? colorField.replace(/Color$/, 'Opacity') : null;
+    const opacityInputNow = opacityField ? findOpacityInput(opacityField, stopIndex) : null;
+    const stopSuffix = stopIndex != null ? `[data-stop-index="${stopIndex}"]` : '';
+    const safeSelectorParts = [`[data-field="${colorField}"]${stopSuffix}`];
+    if (opacityField) safeSelectorParts.push(`[data-field="${opacityField}"]${stopSuffix}`);
+
+    openColorPicker(swatch, {
+      hex: nativeInput.value || '#000000',
+      alpha: opacityInputNow ? clamp((parseFloat(opacityInputNow.value) || 0) / 100, 0, 1) : undefined,
+      showAlpha: !!opacityInputNow,
+      extraSafeSelector: safeSelectorParts.join(', '),
+      onInput: (hex, alpha) => {
+        const chip = swatch.querySelector('i'); if (chip) chip.style.background = hex;
+        const input = findColorInput(colorField, stopIndex);
+        if (input){ input.value = hex; input.dispatchEvent(new Event('input', { bubbles: true })); }
+        if (opacityField){
+          const oi = findOpacityInput(opacityField, stopIndex);
+          if (oi){ oi.value = Math.round(alpha * 100); oi.dispatchEvent(new Event('input', { bubbles: true })); }
+        }
+      },
+      onCommit: (hex, alpha) => {
+        const input = findColorInput(colorField, stopIndex);
+        if (input){ input.value = hex; input.dispatchEvent(new Event('change', { bubbles: true })); }
+        if (opacityField){
+          const oi = findOpacityInput(opacityField, stopIndex);
+          if (oi){ oi.value = Math.round(alpha * 100); oi.dispatchEvent(new Event('change', { bubbles: true })); }
+        }
+      },
+    });
+  });
+}
+
+/* ---------------- custom dropdown (replaces native <select class="select">) ---------------- */
+let __activeDropdown = null;
+function closeActiveDropdown(){
+  if (!__activeDropdown) return;
+  const dd = __activeDropdown;
+  __activeDropdown = null;
+  dd.el.remove();
+  window.removeEventListener('resize', dd.reposition);
+  document.removeEventListener('mousedown', dd.onOutside, true);
+  document.removeEventListener('keydown', dd.onKey, true);
+}
+function openCustomDropdown(selectEl){
+  closeActiveDropdown();
+  closeActiveColorPicker(true);
+  const el = document.createElement('div');
+  el.className = 'custom-dropdown-list';
+  const items = Array.from(selectEl.options).map((opt) => {
+    const item = document.createElement('button');
+    item.type = 'button';
+    item.className = 'dropdown-item' + (opt.selected ? ' selected' : '');
+    item.textContent = opt.textContent;
+    item.disabled = opt.disabled;
+    item.addEventListener('click', () => {
+      selectEl.value = opt.value;
+      selectEl.dispatchEvent(new Event('input', { bubbles: true }));
+      selectEl.dispatchEvent(new Event('change', { bubbles: true }));
+      closeActiveDropdown();
+      selectEl.focus();
+    });
+    el.appendChild(item);
+    return item;
+  });
+  document.body.appendChild(el);
+
+  function reposition(){ positionFloatingPanel(el, selectEl.getBoundingClientRect(), { margin: 10, gap: 4, matchWidth: selectEl.offsetWidth }); }
+  reposition();
+  window.addEventListener('resize', reposition);
+
+  function onOutside(e){ if (!el.contains(e.target) && e.target !== selectEl) closeActiveDropdown(); }
+  function onKey(e){
+    if (e.key === 'Escape'){ closeActiveDropdown(); selectEl.focus(); return; }
+    const idx = items.findIndex(i => i === document.activeElement);
+    if (e.key === 'ArrowDown'){ e.preventDefault(); (items[idx + 1] || items[0]).focus(); }
+    else if (e.key === 'ArrowUp'){ e.preventDefault(); (items[idx - 1] || items[items.length - 1]).focus(); }
+  }
+  setTimeout(() => {
+    document.addEventListener('mousedown', onOutside, true);
+    document.addEventListener('keydown', onKey, true);
+    const sel = items.find(i => i.classList.contains('selected'));
+    (sel || items[0] || el).focus();
+  }, 0);
+
+  __activeDropdown = { el, reposition, onOutside, onKey };
+}
+// Delegated at the document level (not per-element) so it automatically covers selects
+// that get added later by a panel re-render (e.g. the font-weight select rebuilt every
+// time the properties panel redraws) with no re-wiring step needed.
+function wireCustomDropdowns(){
+  document.addEventListener('mousedown', (e) => {
+    const sel = e.target.closest('select.select');
+    if (!sel || sel.disabled) return;
+    e.preventDefault();
+    openCustomDropdown(sel);
+  });
+}
