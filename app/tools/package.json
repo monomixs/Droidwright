@@ -1,0 +1,6 @@
+{
+  "name": "droidwright-icon-tools",
+  "private": true,
+  "description": "Turns an SVG into app.ico (see make-icon.js)",
+  "dependencies": { "@resvg/resvg-js": "^2.6.2" }
+}

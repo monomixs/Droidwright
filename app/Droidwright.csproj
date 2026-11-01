@@ -1,0 +1,41 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+	<PropertyGroup>
+		<OutputType>WinExe</OutputType>
+		<!-- If Visual Studio says this target isn't installed, change it to net9.0-windows or net8.0-windows -->
+		<Version>1.6.0</Version>
+		<TargetFramework>net10.0-windows</TargetFramework>
+		<UseWindowsForms>true</UseWindowsForms>
+		<ImplicitUsings>enable</ImplicitUsings>
+		<Nullable>enable</Nullable>
+		<AssemblyName>Droidwright</AssemblyName>
+		<RootNamespace>Droidwright</RootNamespace>
+		<ApplicationHighDpiMode>PerMonitorV2</ApplicationHighDpiMode>
+		<!-- APP ICON: put a file named  app.ico  in this folder (next to Droidwright.csproj) and rebuild.
+		     That one file becomes the .exe's icon (Explorer, shortcuts, pinned taskbar icon) AND the
+		     icon of the running window in the taskbar / Alt+Tab (see MainForm.cs). Nothing to edit here. -->
+		<ApplicationIcon Condition="Exists('app.ico')">app.ico</ApplicationIcon>
+	</PropertyGroup>
+
+	<!-- Ship app.ico next to the exe so the window can load it too -->
+	<ItemGroup>
+		<Content Include="app.ico" Condition="Exists('app.ico')" CopyToOutputDirectory="PreserveNewest" />
+	</ItemGroup>
+
+	<ItemGroup>
+		<PackageReference Include="Microsoft.Web.WebView2" Version="1.0.*" />
+	</ItemGroup>
+
+	<!-- tools\ holds the icon-maker script (and its node_modules after "npm install"). It is not part of the app. -->
+	<ItemGroup>
+		<Compile Remove="tools\**" />
+		<EmbeddedResource Remove="tools\**" />
+		<None Remove="tools\**" />
+	</ItemGroup>
+
+	<!-- Copies your whole website (the "web" folder) next to the built exe -->
+	<ItemGroup>
+		<Content Include="web\**\*" CopyToOutputDirectory="PreserveNewest" />
+	</ItemGroup>
+
+</Project>

@@ -1,0 +1,11 @@
+<svg width="64" height="64" viewBox="56 56 400 400" xmlns="http://www.w3.org/2000/svg">
+  <!-- SIMPLIFIED robot for the tiny icon sizes (16-32 px). Same shape and colours as robot.svg, but without the
+       fine detail (selection box, cursor, thin eye rings) that turns to mush at that size. Eyes are solid dots. -->
+  <path d="M173.731,173.983 L338.269,173.983 C393.497,173.983 438.269,218.754 438.269,273.983 L438.269,379.887 C438.269,410.263 413.644,434.887 383.269,434.887 L128.731,434.887 C98.356,434.887 73.731,410.263 73.731,379.887 L73.731,273.983 C73.731,218.754 118.503,173.983 173.731,173.983 Z" fill="#000000" stroke="#5EE1A0" stroke-width="32" stroke-linecap="round" stroke-linejoin="round"/>
+  <path d="M362.544,172.154 L405.193,105.468" fill="none" stroke="#5EE1A0" stroke-width="30" stroke-linecap="round"/>
+  <path d="M160.245,178.897 L106.807,105.468" fill="none" stroke="#5EE1A0" stroke-width="30" stroke-linecap="round"/>
+  <circle cx="414.634" cy="96.027" r="34" fill="#5EE1A0"/>
+  <circle cx="97.366" cy="96.027" r="34" fill="#5EE1A0"/>
+  <circle cx="183.488" cy="322.924" r="38" fill="#5EE1A0"/>
+  <circle cx="328.512" cy="322.924" r="38" fill="#5EE1A0"/>
+</svg>
