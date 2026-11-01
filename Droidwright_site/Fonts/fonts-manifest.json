@@ -1,0 +1,1773 @@
+[
+  {
+    "family": "Albert Sans",
+    "category": "sans-serif",
+    "file": "Fonts/Sans-Serif/AlbertSans.ttf",
+    "isVariable": true,
+    "weights": [
+      100,
+      200,
+      300,
+      400,
+      500,
+      600,
+      700,
+      800,
+      900
+    ],
+    "variants": [
+      "100",
+      "200",
+      "300",
+      "regular",
+      "500",
+      "600",
+      "700",
+      "800",
+      "900"
+    ],
+    "wghtAxis": {
+      "min": 100,
+      "default": 400,
+      "max": 900
+    }
+  },
+  {
+    "family": "Alfa Slab One",
+    "category": "display",
+    "file": "Fonts/Display/alfaslabone.ttf",
+    "isVariable": false,
+    "weights": [
+      400
+    ],
+    "variants": [
+      "regular"
+    ],
+    "wghtAxis": null
+  },
+  {
+    "family": "Anonymous Pro",
+    "category": "monospace",
+    "file": "Fonts/Monospace/anonymouspro.ttf",
+    "isVariable": false,
+    "weights": [
+      400
+    ],
+    "variants": [
+      "regular"
+    ],
+    "wghtAxis": null
+  },
+  {
+    "family": "Anton",
+    "category": "display",
+    "file": "Fonts/Display/anton.ttf",
+    "isVariable": false,
+    "weights": [
+      400
+    ],
+    "variants": [
+      "regular"
+    ],
+    "wghtAxis": null
+  },
+  {
+    "family": "Archivo",
+    "category": "display",
+    "file": "Fonts/Display/archivoblack.ttf",
+    "isVariable": false,
+    "weights": [
+      400
+    ],
+    "variants": [
+      "regular"
+    ],
+    "wghtAxis": null
+  },
+  {
+    "family": "Audiowide",
+    "category": "display",
+    "file": "Fonts/Display/audiowide.ttf",
+    "isVariable": false,
+    "weights": [
+      400
+    ],
+    "variants": [
+      "regular"
+    ],
+    "wghtAxis": null
+  },
+  {
+    "family": "Azeret Mono",
+    "category": "monospace",
+    "file": "Fonts/Monospace/azeretmono.ttf",
+    "isVariable": true,
+    "weights": [
+      100,
+      200,
+      300,
+      400,
+      500,
+      600,
+      700,
+      800,
+      900
+    ],
+    "variants": [
+      "100",
+      "200",
+      "300",
+      "regular",
+      "500",
+      "600",
+      "700",
+      "800",
+      "900"
+    ],
+    "wghtAxis": {
+      "min": 100,
+      "default": 100,
+      "max": 900
+    }
+  },
+  {
+    "family": "Bebas Neue",
+    "category": "display",
+    "file": "Fonts/Display/bebasneue.ttf",
+    "isVariable": false,
+    "weights": [
+      400
+    ],
+    "variants": [
+      "regular"
+    ],
+    "wghtAxis": null
+  },
+  {
+    "family": "Bitter",
+    "category": "serif",
+    "file": "Fonts/Serif/bitter.ttf",
+    "isVariable": true,
+    "weights": [
+      100,
+      200,
+      300,
+      400,
+      500,
+      600,
+      700,
+      800,
+      900
+    ],
+    "variants": [
+      "100",
+      "200",
+      "300",
+      "regular",
+      "500",
+      "600",
+      "700",
+      "800",
+      "900"
+    ],
+    "wghtAxis": {
+      "min": 100,
+      "default": 100,
+      "max": 900
+    }
+  },
+  {
+    "family": "Black Ops One",
+    "category": "display",
+    "file": "Fonts/Display/blackopsone.ttf",
+    "isVariable": false,
+    "weights": [
+      400
+    ],
+    "variants": [
+      "regular"
+    ],
+    "wghtAxis": null
+  },
+  {
+    "family": "Bodoni Moda",
+    "category": "serif",
+    "file": "Fonts/Serif/bodonimoda.ttf",
+    "isVariable": true,
+    "weights": [
+      400,
+      500,
+      600,
+      700,
+      800,
+      900
+    ],
+    "variants": [
+      "regular",
+      "500",
+      "600",
+      "700",
+      "800",
+      "900"
+    ],
+    "wghtAxis": {
+      "min": 400,
+      "default": 400,
+      "max": 900
+    }
+  },
+  {
+    "family": "Bungee",
+    "category": "display",
+    "file": "Fonts/Display/bungee.ttf",
+    "isVariable": false,
+    "weights": [
+      400
+    ],
+    "variants": [
+      "regular"
+    ],
+    "wghtAxis": null
+  },
+  {
+    "family": "Caveat",
+    "category": "handwriting",
+    "file": "Fonts/Handwriting/caveat.ttf",
+    "isVariable": true,
+    "weights": [
+      400,
+      500,
+      600,
+      700
+    ],
+    "variants": [
+      "regular",
+      "500",
+      "600",
+      "700"
+    ],
+    "wghtAxis": {
+      "min": 400,
+      "default": 400,
+      "max": 700
+    }
+  },
+  {
+    "family": "Chakra Petch",
+    "category": "display",
+    "file": "Fonts/Display/chakrapetch.ttf",
+    "isVariable": false,
+    "weights": [
+      400
+    ],
+    "variants": [
+      "regular"
+    ],
+    "wghtAxis": null
+  },
+  {
+    "family": "Comfortaa",
+    "category": "handwriting",
+    "file": "Fonts/Handwriting/comfortaa.ttf",
+    "isVariable": true,
+    "weights": [
+      300,
+      400,
+      500,
+      600,
+      700
+    ],
+    "variants": [
+      "300",
+      "regular",
+      "500",
+      "600",
+      "700"
+    ],
+    "wghtAxis": {
+      "min": 300,
+      "default": 400,
+      "max": 700
+    }
+  },
+  {
+    "family": "Cormorant Garamond",
+    "category": "serif",
+    "file": "Fonts/Serif/cormorantgaramond.ttf",
+    "isVariable": true,
+    "weights": [
+      300,
+      400,
+      500,
+      600,
+      700
+    ],
+    "variants": [
+      "300",
+      "regular",
+      "500",
+      "600",
+      "700"
+    ],
+    "wghtAxis": {
+      "min": 300,
+      "default": 300,
+      "max": 700
+    }
+  },
+  {
+    "family": "Crimson Pro",
+    "category": "serif",
+    "file": "Fonts/Serif/crimsonpro.ttf",
+    "isVariable": true,
+    "weights": [
+      200,
+      300,
+      400,
+      500,
+      600,
+      700,
+      800,
+      900
+    ],
+    "variants": [
+      "200",
+      "300",
+      "regular",
+      "500",
+      "600",
+      "700",
+      "800",
+      "900"
+    ],
+    "wghtAxis": {
+      "min": 200,
+      "default": 400,
+      "max": 900
+    }
+  },
+  {
+    "family": "Dancing Script",
+    "category": "handwriting",
+    "file": "Fonts/Handwriting/dancingscript.ttf",
+    "isVariable": true,
+    "weights": [
+      400,
+      500,
+      600,
+      700
+    ],
+    "variants": [
+      "regular",
+      "500",
+      "600",
+      "700"
+    ],
+    "wghtAxis": {
+      "min": 400,
+      "default": 400,
+      "max": 700
+    }
+  },
+  {
+    "family": "DM Mono",
+    "category": "monospace",
+    "file": "Fonts/Monospace/dmmono.ttf",
+    "isVariable": false,
+    "weights": [
+      400
+    ],
+    "variants": [
+      "regular"
+    ],
+    "wghtAxis": null
+  },
+  {
+    "family": "DM Sans",
+    "category": "sans-serif",
+    "file": "Fonts/Sans-Serif/DMSans.ttf",
+    "isVariable": true,
+    "weights": [
+      100,
+      200,
+      300,
+      400,
+      500,
+      600,
+      700,
+      800,
+      900
+    ],
+    "variants": [
+      "100",
+      "200",
+      "300",
+      "regular",
+      "500",
+      "600",
+      "700",
+      "800",
+      "900"
+    ],
+    "wghtAxis": {
+      "min": 100,
+      "default": 400,
+      "max": 1000
+    }
+  },
+  {
+    "family": "DM Serif Display",
+    "category": "serif",
+    "file": "Fonts/Serif/dmserifdisplay.ttf",
+    "isVariable": false,
+    "weights": [
+      400
+    ],
+    "variants": [
+      "regular"
+    ],
+    "wghtAxis": null
+  },
+  {
+    "family": "EB Garamond",
+    "category": "serif",
+    "file": "Fonts/Serif/ebgaramond.ttf",
+    "isVariable": true,
+    "weights": [
+      400,
+      500,
+      600,
+      700,
+      800
+    ],
+    "variants": [
+      "regular",
+      "500",
+      "600",
+      "700",
+      "800"
+    ],
+    "wghtAxis": {
+      "min": 400,
+      "default": 400,
+      "max": 800
+    }
+  },
+  {
+    "family": "Exo 2",
+    "category": "display",
+    "file": "Fonts/Display/exo2.ttf",
+    "isVariable": true,
+    "weights": [
+      100,
+      200,
+      300,
+      400,
+      500,
+      600,
+      700,
+      800,
+      900
+    ],
+    "variants": [
+      "100",
+      "200",
+      "300",
+      "regular",
+      "500",
+      "600",
+      "700",
+      "800",
+      "900"
+    ],
+    "wghtAxis": {
+      "min": 100,
+      "default": 400,
+      "max": 900
+    }
+  },
+  {
+    "family": "Figtree",
+    "category": "sans-serif",
+    "file": "Fonts/Sans-Serif/Figtree.ttf",
+    "isVariable": true,
+    "weights": [
+      300,
+      400,
+      500,
+      600,
+      700,
+      800,
+      900
+    ],
+    "variants": [
+      "300",
+      "regular",
+      "500",
+      "600",
+      "700",
+      "800",
+      "900"
+    ],
+    "wghtAxis": {
+      "min": 300,
+      "default": 300,
+      "max": 900
+    }
+  },
+  {
+    "family": "Fira Code",
+    "category": "monospace",
+    "file": "Fonts/Monospace/firacode.ttf",
+    "isVariable": true,
+    "weights": [
+      300,
+      400,
+      500,
+      600,
+      700
+    ],
+    "variants": [
+      "300",
+      "regular",
+      "500",
+      "600",
+      "700"
+    ],
+    "wghtAxis": {
+      "min": 300,
+      "default": 300,
+      "max": 700
+    }
+  },
+  {
+    "family": "Fraunces",
+    "category": "serif",
+    "file": "Fonts/Serif/fraunces.ttf",
+    "isVariable": true,
+    "weights": [
+      100,
+      200,
+      300,
+      400,
+      500,
+      600,
+      700,
+      800,
+      900
+    ],
+    "variants": [
+      "100",
+      "200",
+      "300",
+      "regular",
+      "500",
+      "600",
+      "700",
+      "800",
+      "900"
+    ],
+    "wghtAxis": {
+      "min": 100,
+      "default": 900,
+      "max": 900
+    }
+  },
+  {
+    "family": "Fredoka",
+    "category": "handwriting",
+    "file": "Fonts/Handwriting/fredoka.ttf",
+    "isVariable": true,
+    "weights": [
+      300,
+      400,
+      500,
+      600,
+      700
+    ],
+    "variants": [
+      "300",
+      "regular",
+      "500",
+      "600",
+      "700"
+    ],
+    "wghtAxis": {
+      "min": 300,
+      "default": 300,
+      "max": 700
+    }
+  },
+  {
+    "family": "Geist",
+    "category": "sans-serif",
+    "file": "Fonts/Sans-Serif/Geist.ttf",
+    "isVariable": true,
+    "weights": [
+      100,
+      200,
+      300,
+      400,
+      500,
+      600,
+      700,
+      800,
+      900
+    ],
+    "variants": [
+      "100",
+      "200",
+      "300",
+      "regular",
+      "500",
+      "600",
+      "700",
+      "800",
+      "900"
+    ],
+    "wghtAxis": {
+      "min": 100,
+      "default": 400,
+      "max": 900
+    }
+  },
+  {
+    "family": "Geist Mono",
+    "category": "monospace",
+    "file": "Fonts/Monospace/geistmono.ttf",
+    "isVariable": true,
+    "weights": [
+      100,
+      200,
+      300,
+      400,
+      500,
+      600,
+      700,
+      800,
+      900
+    ],
+    "variants": [
+      "100",
+      "200",
+      "300",
+      "regular",
+      "500",
+      "600",
+      "700",
+      "800",
+      "900"
+    ],
+    "wghtAxis": {
+      "min": 100,
+      "default": 400,
+      "max": 900
+    }
+  },
+  {
+    "family": "Hanken Grotesk",
+    "category": "sans-serif",
+    "file": "Fonts/Sans-Serif/HankenGrotesk.ttf",
+    "isVariable": true,
+    "weights": [
+      100,
+      200,
+      300,
+      400,
+      500,
+      600,
+      700,
+      800,
+      900
+    ],
+    "variants": [
+      "100",
+      "200",
+      "300",
+      "regular",
+      "500",
+      "600",
+      "700",
+      "800",
+      "900"
+    ],
+    "wghtAxis": {
+      "min": 100,
+      "default": 400,
+      "max": 900
+    }
+  },
+  {
+    "family": "IBM Plex Mono",
+    "category": "monospace",
+    "file": "Fonts/Monospace/ibmplexmono.ttf",
+    "isVariable": false,
+    "weights": [
+      400
+    ],
+    "variants": [
+      "regular"
+    ],
+    "wghtAxis": null
+  },
+  {
+    "family": "IBM Plex Sans",
+    "category": "sans-serif",
+    "file": "Fonts/Sans-Serif/IBMPlexSans.ttf",
+    "isVariable": true,
+    "weights": [
+      100,
+      200,
+      300,
+      400,
+      500,
+      600,
+      700
+    ],
+    "variants": [
+      "100",
+      "200",
+      "300",
+      "regular",
+      "500",
+      "600",
+      "700"
+    ],
+    "wghtAxis": {
+      "min": 100,
+      "default": 400,
+      "max": 700
+    }
+  },
+  {
+    "family": "Inconsolata",
+    "category": "monospace",
+    "file": "Fonts/Monospace/inconsolata.ttf",
+    "isVariable": true,
+    "weights": [
+      200,
+      300,
+      400,
+      500,
+      600,
+      700,
+      800,
+      900
+    ],
+    "variants": [
+      "200",
+      "300",
+      "regular",
+      "500",
+      "600",
+      "700",
+      "800",
+      "900"
+    ],
+    "wghtAxis": {
+      "min": 200,
+      "default": 400,
+      "max": 900
+    }
+  },
+  {
+    "family": "Inter",
+    "category": "sans-serif",
+    "file": "Fonts/Sans-Serif/Inter.ttf",
+    "isVariable": true,
+    "weights": [
+      100,
+      200,
+      300,
+      400,
+      500,
+      600,
+      700,
+      800,
+      900
+    ],
+    "variants": [
+      "100",
+      "200",
+      "300",
+      "regular",
+      "500",
+      "600",
+      "700",
+      "800",
+      "900"
+    ],
+    "wghtAxis": {
+      "min": 100,
+      "default": 400,
+      "max": 900
+    }
+  },
+  {
+    "family": "JetBrains Mono",
+    "category": "monospace",
+    "file": "Fonts/Monospace/jetbrainsmono.ttf",
+    "isVariable": true,
+    "weights": [
+      100,
+      200,
+      300,
+      400,
+      500,
+      600,
+      700,
+      800
+    ],
+    "variants": [
+      "100",
+      "200",
+      "300",
+      "regular",
+      "500",
+      "600",
+      "700",
+      "800"
+    ],
+    "wghtAxis": {
+      "min": 100,
+      "default": 400,
+      "max": 800
+    }
+  },
+  {
+    "family": "Kalam",
+    "category": "handwriting",
+    "file": "Fonts/Handwriting/kalam.ttf",
+    "isVariable": false,
+    "weights": [
+      400
+    ],
+    "variants": [
+      "regular"
+    ],
+    "wghtAxis": null
+  },
+  {
+    "family": "Libre Baskerville",
+    "category": "serif",
+    "file": "Fonts/Serif/librebaskerville.ttf",
+    "isVariable": true,
+    "weights": [
+      400,
+      500,
+      600,
+      700
+    ],
+    "variants": [
+      "regular",
+      "500",
+      "600",
+      "700"
+    ],
+    "wghtAxis": {
+      "min": 400,
+      "default": 400,
+      "max": 700
+    }
+  },
+  {
+    "family": "Libre Caslon Text",
+    "category": "serif",
+    "file": "Fonts/Serif/librecaslontext.ttf",
+    "isVariable": false,
+    "weights": [
+      400
+    ],
+    "variants": [
+      "regular"
+    ],
+    "wghtAxis": null
+  },
+  {
+    "family": "Lora",
+    "category": "serif",
+    "file": "Fonts/Serif/lora.ttf",
+    "isVariable": true,
+    "weights": [
+      400,
+      500,
+      600,
+      700
+    ],
+    "variants": [
+      "regular",
+      "500",
+      "600",
+      "700"
+    ],
+    "wghtAxis": {
+      "min": 400,
+      "default": 400,
+      "max": 700
+    }
+  },
+  {
+    "family": "Manrope",
+    "category": "sans-serif",
+    "file": "Fonts/Sans-Serif/Manrope.ttf",
+    "isVariable": true,
+    "weights": [
+      200,
+      300,
+      400,
+      500,
+      600,
+      700,
+      800
+    ],
+    "variants": [
+      "200",
+      "300",
+      "regular",
+      "500",
+      "600",
+      "700",
+      "800"
+    ],
+    "wghtAxis": {
+      "min": 200,
+      "default": 200,
+      "max": 800
+    }
+  },
+  {
+    "family": "Merriweather",
+    "category": "serif",
+    "file": "Fonts/Serif/merriweather.ttf",
+    "isVariable": true,
+    "weights": [
+      300,
+      400,
+      500,
+      600,
+      700,
+      800,
+      900
+    ],
+    "variants": [
+      "300",
+      "regular",
+      "500",
+      "600",
+      "700",
+      "800",
+      "900"
+    ],
+    "wghtAxis": {
+      "min": 300,
+      "default": 300,
+      "max": 900
+    }
+  },
+  {
+    "family": "Michroma",
+    "category": "display",
+    "file": "Fonts/Display/michroma.ttf",
+    "isVariable": false,
+    "weights": [
+      400
+    ],
+    "variants": [
+      "regular"
+    ],
+    "wghtAxis": null
+  },
+  {
+    "family": "Montserrat",
+    "category": "sans-serif",
+    "file": "Fonts/Sans-Serif/Montserrat.ttf",
+    "isVariable": true,
+    "weights": [
+      100,
+      200,
+      300,
+      400,
+      500,
+      600,
+      700,
+      800,
+      900
+    ],
+    "variants": [
+      "100",
+      "200",
+      "300",
+      "regular",
+      "500",
+      "600",
+      "700",
+      "800",
+      "900"
+    ],
+    "wghtAxis": {
+      "min": 100,
+      "default": 100,
+      "max": 900
+    }
+  },
+  {
+    "family": "Mulish",
+    "category": "sans-serif",
+    "file": "Fonts/Sans-Serif/Mulish.ttf",
+    "isVariable": true,
+    "weights": [
+      200,
+      300,
+      400,
+      500,
+      600,
+      700,
+      800,
+      900
+    ],
+    "variants": [
+      "200",
+      "300",
+      "regular",
+      "500",
+      "600",
+      "700",
+      "800",
+      "900"
+    ],
+    "wghtAxis": {
+      "min": 200,
+      "default": 200,
+      "max": 1000
+    }
+  },
+  {
+    "family": "Noto Sans",
+    "category": "sans-serif",
+    "file": "Fonts/Sans-Serif/NotoSans.ttf",
+    "isVariable": true,
+    "weights": [
+      100,
+      200,
+      300,
+      400,
+      500,
+      600,
+      700,
+      800,
+      900
+    ],
+    "variants": [
+      "100",
+      "200",
+      "300",
+      "regular",
+      "500",
+      "600",
+      "700",
+      "800",
+      "900"
+    ],
+    "wghtAxis": {
+      "min": 100,
+      "default": 400,
+      "max": 900
+    }
+  },
+  {
+    "family": "Nunito Sans",
+    "category": "sans-serif",
+    "file": "Fonts/Sans-Serif/NunitoSans.ttf",
+    "isVariable": true,
+    "weights": [
+      200,
+      300,
+      400,
+      500,
+      600,
+      700,
+      800,
+      900
+    ],
+    "variants": [
+      "200",
+      "300",
+      "regular",
+      "500",
+      "600",
+      "700",
+      "800",
+      "900"
+    ],
+    "wghtAxis": {
+      "min": 200,
+      "default": 200,
+      "max": 1000
+    }
+  },
+  {
+    "family": "Open Sans",
+    "category": "sans-serif",
+    "file": "Fonts/Sans-Serif/OpenSans.ttf",
+    "isVariable": true,
+    "weights": [
+      300,
+      400,
+      500,
+      600,
+      700,
+      800
+    ],
+    "variants": [
+      "300",
+      "regular",
+      "500",
+      "600",
+      "700",
+      "800"
+    ],
+    "wghtAxis": {
+      "min": 300,
+      "default": 400,
+      "max": 800
+    }
+  },
+  {
+    "family": "Orbitron",
+    "category": "display",
+    "file": "Fonts/Display/orbitron.ttf",
+    "isVariable": true,
+    "weights": [
+      400,
+      500,
+      600,
+      700,
+      800,
+      900
+    ],
+    "variants": [
+      "regular",
+      "500",
+      "600",
+      "700",
+      "800",
+      "900"
+    ],
+    "wghtAxis": {
+      "min": 400,
+      "default": 400,
+      "max": 900
+    }
+  },
+  {
+    "family": "Oswald",
+    "category": "display",
+    "file": "Fonts/Display/oswald.ttf",
+    "isVariable": true,
+    "weights": [
+      200,
+      300,
+      400,
+      500,
+      600,
+      700
+    ],
+    "variants": [
+      "200",
+      "300",
+      "regular",
+      "500",
+      "600",
+      "700"
+    ],
+    "wghtAxis": {
+      "min": 200,
+      "default": 400,
+      "max": 700
+    }
+  },
+  {
+    "family": "Outfit",
+    "category": "sans-serif",
+    "file": "Fonts/Sans-Serif/Outfit.ttf",
+    "isVariable": true,
+    "weights": [
+      100,
+      200,
+      300,
+      400,
+      500,
+      600,
+      700,
+      800,
+      900
+    ],
+    "variants": [
+      "100",
+      "200",
+      "300",
+      "regular",
+      "500",
+      "600",
+      "700",
+      "800",
+      "900"
+    ],
+    "wghtAxis": {
+      "min": 100,
+      "default": 100,
+      "max": 900
+    }
+  },
+  {
+    "family": "Oxygen Mono",
+    "category": "monospace",
+    "file": "Fonts/Monospace/oxygenmono.ttf",
+    "isVariable": false,
+    "weights": [
+      400
+    ],
+    "variants": [
+      "regular"
+    ],
+    "wghtAxis": null
+  },
+  {
+    "family": "Pacifico",
+    "category": "handwriting",
+    "file": "Fonts/Handwriting/pacifico.ttf",
+    "isVariable": false,
+    "weights": [
+      400
+    ],
+    "variants": [
+      "regular"
+    ],
+    "wghtAxis": null
+  },
+  {
+    "family": "Patrick Hand",
+    "category": "handwriting",
+    "file": "Fonts/Handwriting/patrickhand.ttf",
+    "isVariable": false,
+    "weights": [
+      400
+    ],
+    "variants": [
+      "regular"
+    ],
+    "wghtAxis": null
+  },
+  {
+    "family": "Permanent Marker",
+    "category": "display",
+    "file": "Fonts/Display/permanentmarker.ttf",
+    "isVariable": false,
+    "weights": [
+      400
+    ],
+    "variants": [
+      "regular"
+    ],
+    "wghtAxis": null
+  },
+  {
+    "family": "Playfair Display",
+    "category": "serif",
+    "file": "Fonts/Serif/playfairdisplay.ttf",
+    "isVariable": true,
+    "weights": [
+      400,
+      500,
+      600,
+      700,
+      800,
+      900
+    ],
+    "variants": [
+      "regular",
+      "500",
+      "600",
+      "700",
+      "800",
+      "900"
+    ],
+    "wghtAxis": {
+      "min": 400,
+      "default": 400,
+      "max": 900
+    }
+  },
+  {
+    "family": "Plus Jakarta Sans",
+    "category": "sans-serif",
+    "file": "Fonts/Sans-Serif/PlusJakartaSans.ttf",
+    "isVariable": true,
+    "weights": [
+      200,
+      300,
+      400,
+      500,
+      600,
+      700,
+      800
+    ],
+    "variants": [
+      "200",
+      "300",
+      "regular",
+      "500",
+      "600",
+      "700",
+      "800"
+    ],
+    "wghtAxis": {
+      "min": 200,
+      "default": 400,
+      "max": 800
+    }
+  },
+  {
+    "family": "Quicksand",
+    "category": "handwriting",
+    "file": "Fonts/Handwriting/quicksand.ttf",
+    "isVariable": true,
+    "weights": [
+      300,
+      400,
+      500,
+      600,
+      700
+    ],
+    "variants": [
+      "300",
+      "regular",
+      "500",
+      "600",
+      "700"
+    ],
+    "wghtAxis": {
+      "min": 300,
+      "default": 300,
+      "max": 700
+    }
+  },
+  {
+    "family": "Red Hat Mono",
+    "category": "monospace",
+    "file": "Fonts/Monospace/redhatmono.ttf",
+    "isVariable": true,
+    "weights": [
+      300,
+      400,
+      500,
+      600,
+      700
+    ],
+    "variants": [
+      "300",
+      "regular",
+      "500",
+      "600",
+      "700"
+    ],
+    "wghtAxis": {
+      "min": 300,
+      "default": 400,
+      "max": 700
+    }
+  },
+  {
+    "family": "Righteous",
+    "category": "display",
+    "file": "Fonts/Display/righteous.ttf",
+    "isVariable": false,
+    "weights": [
+      400
+    ],
+    "variants": [
+      "regular"
+    ],
+    "wghtAxis": null
+  },
+  {
+    "family": "Roboto",
+    "category": "sans-serif",
+    "file": "Fonts/Sans-Serif/Roboto.ttf",
+    "isVariable": true,
+    "weights": [
+      100,
+      200,
+      300,
+      400,
+      500,
+      600,
+      700,
+      800,
+      900
+    ],
+    "variants": [
+      "100",
+      "200",
+      "300",
+      "regular",
+      "500",
+      "600",
+      "700",
+      "800",
+      "900"
+    ],
+    "wghtAxis": {
+      "min": 100,
+      "default": 400,
+      "max": 900
+    }
+  },
+  {
+    "family": "Roboto Flex",
+    "category": "sans-serif",
+    "file": "Fonts/Sans-Serif/RobotoFlex.ttf",
+    "isVariable": true,
+    "weights": [
+      100,
+      200,
+      300,
+      400,
+      500,
+      600,
+      700,
+      800,
+      900
+    ],
+    "variants": [
+      "100",
+      "200",
+      "300",
+      "regular",
+      "500",
+      "600",
+      "700",
+      "800",
+      "900"
+    ],
+    "wghtAxis": {
+      "min": 100,
+      "default": 400,
+      "max": 1000
+    }
+  },
+  {
+    "family": "Roboto Mono",
+    "category": "monospace",
+    "file": "Fonts/Monospace/robotomono.ttf",
+    "isVariable": true,
+    "weights": [
+      100,
+      200,
+      300,
+      400,
+      500,
+      600,
+      700
+    ],
+    "variants": [
+      "100",
+      "200",
+      "300",
+      "regular",
+      "500",
+      "600",
+      "700"
+    ],
+    "wghtAxis": {
+      "min": 100,
+      "default": 400,
+      "max": 700
+    }
+  },
+  {
+    "family": "Rubik",
+    "category": "sans-serif",
+    "file": "Fonts/Sans-Serif/Rubik.ttf",
+    "isVariable": true,
+    "weights": [
+      300,
+      400,
+      500,
+      600,
+      700,
+      800,
+      900
+    ],
+    "variants": [
+      "300",
+      "regular",
+      "500",
+      "600",
+      "700",
+      "800",
+      "900"
+    ],
+    "wghtAxis": {
+      "min": 300,
+      "default": 300,
+      "max": 900
+    }
+  },
+  {
+    "family": "Sacramento",
+    "category": "handwriting",
+    "file": "Fonts/Handwriting/sacramento.ttf",
+    "isVariable": false,
+    "weights": [
+      400
+    ],
+    "variants": [
+      "regular"
+    ],
+    "wghtAxis": null
+  },
+  {
+    "family": "Satisfy",
+    "category": "handwriting",
+    "file": "Fonts/Handwriting/satisfy.ttf",
+    "isVariable": false,
+    "weights": [
+      400
+    ],
+    "variants": [
+      "regular"
+    ],
+    "wghtAxis": null
+  },
+  {
+    "family": "Source Sans 3",
+    "category": "sans-serif",
+    "file": "Fonts/Sans-Serif/SourceSans3.ttf",
+    "isVariable": true,
+    "weights": [
+      200,
+      300,
+      400,
+      500,
+      600,
+      700,
+      800,
+      900
+    ],
+    "variants": [
+      "200",
+      "300",
+      "regular",
+      "500",
+      "600",
+      "700",
+      "800",
+      "900"
+    ],
+    "wghtAxis": {
+      "min": 200,
+      "default": 200,
+      "max": 900
+    }
+  },
+  {
+    "family": "Source Serif 4",
+    "category": "serif",
+    "file": "Fonts/Serif/sourceserif4.ttf",
+    "isVariable": true,
+    "weights": [
+      200,
+      300,
+      400,
+      500,
+      600,
+      700,
+      800,
+      900
+    ],
+    "variants": [
+      "200",
+      "300",
+      "regular",
+      "500",
+      "600",
+      "700",
+      "800",
+      "900"
+    ],
+    "wghtAxis": {
+      "min": 200,
+      "default": 400,
+      "max": 900
+    }
+  },
+  {
+    "family": "Space Grotesk",
+    "category": "sans-serif",
+    "file": "Fonts/Sans-Serif/SpaceGrotesk.ttf",
+    "isVariable": true,
+    "weights": [
+      300,
+      400,
+      500,
+      600,
+      700
+    ],
+    "variants": [
+      "300",
+      "regular",
+      "500",
+      "600",
+      "700"
+    ],
+    "wghtAxis": {
+      "min": 300,
+      "default": 300,
+      "max": 700
+    }
+  },
+  {
+    "family": "Space Mono",
+    "category": "monospace",
+    "file": "Fonts/Monospace/spacemono.ttf",
+    "isVariable": false,
+    "weights": [
+      400
+    ],
+    "variants": [
+      "regular"
+    ],
+    "wghtAxis": null
+  },
+  {
+    "family": "Spectral",
+    "category": "serif",
+    "file": "Fonts/Serif/spectral.ttf",
+    "isVariable": false,
+    "weights": [
+      400
+    ],
+    "variants": [
+      "regular"
+    ],
+    "wghtAxis": null
+  },
+  {
+    "family": "Teko",
+    "category": "display",
+    "file": "Fonts/Display/teko.ttf",
+    "isVariable": true,
+    "weights": [
+      300,
+      400,
+      500,
+      600,
+      700
+    ],
+    "variants": [
+      "300",
+      "regular",
+      "500",
+      "600",
+      "700"
+    ],
+    "wghtAxis": {
+      "min": 300,
+      "default": 300,
+      "max": 700
+    }
+  },
+  {
+    "family": "Ubuntu Mono",
+    "category": "monospace",
+    "file": "Fonts/Monospace/ubuntumono.ttf",
+    "isVariable": false,
+    "weights": [
+      400
+    ],
+    "variants": [
+      "regular"
+    ],
+    "wghtAxis": null
+  },
+  {
+    "family": "Urbanist",
+    "category": "sans-serif",
+    "file": "Fonts/Sans-Serif/Urbanist.ttf",
+    "isVariable": true,
+    "weights": [
+      100,
+      200,
+      300,
+      400,
+      500,
+      600,
+      700,
+      800,
+      900
+    ],
+    "variants": [
+      "100",
+      "200",
+      "300",
+      "regular",
+      "500",
+      "600",
+      "700",
+      "800",
+      "900"
+    ],
+    "wghtAxis": {
+      "min": 100,
+      "default": 400,
+      "max": 900
+    }
+  },
+  {
+    "family": "VT323",
+    "category": "monospace",
+    "file": "Fonts/Monospace/vt323.ttf",
+    "isVariable": false,
+    "weights": [
+      400
+    ],
+    "variants": [
+      "regular"
+    ],
+    "wghtAxis": null
+  },
+  {
+    "family": "Work Sans",
+    "category": "sans-serif",
+    "file": "Fonts/Sans-Serif/WorkSans.ttf",
+    "isVariable": true,
+    "weights": [
+      100,
+      200,
+      300,
+      400,
+      500,
+      600,
+      700,
+      800,
+      900
+    ],
+    "variants": [
+      "100",
+      "200",
+      "300",
+      "regular",
+      "500",
+      "600",
+      "700",
+      "800",
+      "900"
+    ],
+    "wghtAxis": {
+      "min": 100,
+      "default": 400,
+      "max": 900
+    }
+  }
+]
